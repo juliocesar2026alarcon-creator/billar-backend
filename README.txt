@@ -1,0 +1,1 @@
+Backend autoinit: en el primer arranque crea tablas y datos. Variables: DATABASE_URL, ALLOW_ORIGIN
