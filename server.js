@@ -5,6 +5,25 @@ import pkg from 'pg';
 const { Pool } = pkg;
 
 const app = express();
+// ===== Ruta temporal para ejecutar el SEED =====
+// OJO: esta ruta llama a un script que ejecuta el SQL en /scripts/seed.sql
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const { runSeed } = require('./scripts/run-seed'); // CommonJS import dentro de ESM
+
+app.get('/admin/seed', async (req, res) => {
+  try {
+    if (!process.env.SEED_KEY || req.query.key !== process.env.SEED_KEY) {
+      return res.status(403).send('Forbidden');
+    }
+    await runSeed();
+    return res.send('✅ SEED ejecutado');
+  } catch (e) {
+    console.error(e);
+    return res.status(500).send('❌ Error ejecutando SEED: ' + e.message);
+  }
+});
+// ==============================================
 app.use(express.json());
 const ALLOW_ORIGIN = process.env.ALLOW_ORIGIN || '*';
 app.use(cors({ origin: ALLOW_ORIGIN === '*' ? true : ALLOW_ORIGIN.split(','), credentials: true }));
