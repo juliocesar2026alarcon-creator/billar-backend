@@ -18,22 +18,6 @@ app.use(
 );
 
 // === Import del SEED (versión ESM) ===
-import { runSeed } from './scripts/run-seed.js';
-
-// ===== Ruta temporal para ejecutar el SEED =====
-app.get('/admin/seed', async (req, res) => {
-  try {
-    if (!process.env.SEED_KEY || req.query.key !== process.env.SEED_KEY) {
-      return res.status(403).send('Forbidden');
-    }
-    await runSeed();
-    return res.send('✅ SEED ejecutado');
-  } catch (e) {
-    console.error(e);
-    return res.status(500).send('❌ Error ejecutando SEED: ' + e.message);
-  }
-});
-// ==============================================
 
 // Pool a PostgreSQL (Render necesita SSL)
 const pool = new Pool({
