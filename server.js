@@ -27,7 +27,10 @@ app.get('/admin/seed', async (req, res) => {
 app.use(express.json());
 const ALLOW_ORIGIN = process.env.ALLOW_ORIGIN || '*';
 app.use(cors({ origin: ALLOW_ORIGIN === '*' ? true : ALLOW_ORIGIN.split(','), credentials: true }));
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
 
 async function runInit(){
   const client = await pool.connect();
