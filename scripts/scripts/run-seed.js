@@ -1,25 +1,27 @@
-// scripts/run-seed.js
-// Ejecuta scripts/seed.sql usando la DATABASE_URL (Render Postgres)
+// scripts/run-seed.js  (versión ESM)
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import pkg from 'pg';
 
-const fs = require('fs');
-const path = require('path');
-const { Client } = require('pg');
+const { Client } = pkg;
 
-async function runSeed() {
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+export async function runSeed() {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) throw new Error('DATABASE_URL no está definida');
 
   const client = new Client({
     connectionString,
-    ssl: { rejectUnauthorized: false } // necesario en Render Postgres gestionado
+    ssl: { rejectUnauthorized: false } // necesario en Render
   });
 
   await client.connect();
 
   const sqlPath = path.join(__dirname, 'seed.sql');
   let sql = fs.readFileSync(sqlPath, 'utf8');
-
-  // Reemplaza el placeholder por tu email admin real
   const adminEmail = process.env.ADMIN_EMAIL || 'julio2026alarconflores@gmail.com';
   sql = sql.replaceAll('{{ADMIN_EMAIL}}', adminEmail);
 
@@ -36,10 +38,3 @@ async function runSeed() {
     await client.end();
   }
 }
-
-// Permitir ejecutar como script con "node scripts/run-seed.js"
-if (require.main === module) {
-  runSeed().then(() => process.exit(0)).catch(() => process.exit(1));
-}
-
-module.exports = { runSeed };
