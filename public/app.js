@@ -182,12 +182,12 @@ async function confirmarCierreReal(opciones = {}) {
   }
 }
 
-// 12) Enganche robusto del botón "Cerrar caja" (id="btnCerrar")
-const btnC = document.getElementById('btnCerrar');
+// 12) Enganche robusto del botón "Cerrar caja" (id="btnCerrarCaja")
+const btnC = document.getElementById('btnCerrarCaja');
 if (btnC && !btnC.getAttribute('type')) btnC.setAttribute('type', 'button');
 document.addEventListener('click', (ev) => {
   const el = ev.target;
-  const btn = el?.closest ? el.closest('#btnCerrar') : null;
+  const btn = el?.closest ? el.closest('#btnCerrarCaja') : null;
   if (!btn) return;
   ev.preventDefault();
   confirmarCierreReal({
