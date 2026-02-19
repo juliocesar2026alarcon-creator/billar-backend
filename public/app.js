@@ -71,9 +71,9 @@ function renderMesasFromState(){
   <div class="mesa-estado ${m.estado || 'libre'}">${m.estado || 'libre'}</div>
 
   <div class="mesa-actions" style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap">
-    iniciar▶ Iniciar</button>
-    consumo➕ Consumo</button>
-    finalizar⏹ Finalizar</button>
+    <button class="btn small"  data-action="iniciar"   data-mesa="${m.id}">▶ Iniciar</button>
+    <button class="btn small"  data-action="consumo"   data-mesa="${m.id}">➕ Consumo</button>
+    <button class="btn small"  data-action="finalizar" data-mesa="${m.id}">⏹ Finalizar</button>
   </div>
 `;
 grid.appendChild(card);
