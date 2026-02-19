@@ -65,15 +65,107 @@ function renderMesasFromState(){
   state.mesas.forEach(m => {
     const card = document.createElement('div');
     card.className = `mesa ${m.estado || 'libre'}`;
-    card.innerHTML = `
-      <div class="mesa-title">${m.nombre || `Mesa ${m.id}`}</div>
-      <div class="mesa-time" id="time-${m.id}">00:00:00</div>
-      <div class="mesa-estado">${m.estado || 'libre'}</div>
-    `;
-    grid.appendChild(card);
+  card.innerHTML = `
+  <div class="mesa-title">${m.nombre || `Mesa ${m.id}`}</div>
+  <div class="mesa-time" id="time-${m.id}">00:00:00</div>
+  <div class="mesa-estado ${m.estado || 'libre'}">${m.estado || 'libre'}</div>
+
+  <div class="mesa-actions" style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap">
+    iniciar▶ Iniciar</button>
+    consumo➕ Consumo</button>
+    finalizar⏹ Finalizar</button>
+  </div>
+`;
+grid.appendChild(card);
   });
 }
+// Delegación de clics para acciones de mesa: iniciar / consumo / finalizar
+document.addEventListener('click', async (ev) => {
+  const el  = ev.target;
+  const btn = el?.closest && el.closest('[data-action][data-mesa]');
+  if (!btn) return;
 
+  ev.preventDefault();
+
+  const action = btn.getAttribute('data-action');
+  const mesaId = Number(btn.getAttribute('data-mesa'));
+
+  // 1) Buscar la mesa en el estado
+  const mesa = (state.mesas || []).find(x => Number(x.id) === mesaId);
+  if (!mesa) return;
+
+  // 2) INICIAR: marca inicio y cambia estado a ocupada
+  if (action === 'iniciar') {
+    if (!mesa.inicio) mesa.inicio = new Date().toISOString();
+    mesa.estado = 'ocupada';
+    renderMesasFromState();                 // repinta UI
+    return;
+  }
+
+  // 3) CONSUMO (DEMO): usa prompt; luego lo cambiamos por modal con /productos
+  if (action === 'consumo') {
+    try {
+      const productoId = Number(prompt('ID de producto (ej. 1):', '1'));
+      const cantidad   = Number(prompt('Cantidad:', '1'));
+      if (!productoId || !cantidad) return;
+
+      await fetch(`${API_BASE_URL}/consumos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ticket_id: null,     // si luego manejas ticket en curso, pásalo aquí
+          mesa_id: mesaId,
+          producto_id: productoId,
+          cantidad
+        })
+      });
+
+      alert('Consumo registrado (demo).');
+    } catch (e) {
+      console.error(e);
+      alert('No se pudo registrar consumo: ' + e.message);
+    }
+    return;
+  }
+
+  // 4) FINALIZAR: calcula minutos (con fracción y mínimo) y cierra ticket real
+  if (action === 'finalizar') {
+    try {
+      // a) minutos transcurridos desde 'inicio'
+      const inicioMs = mesa.inicio ? new Date(mesa.inicio).getTime() : Date.now();
+      const minutos  = Math.max(0, Math.round((Date.now() - inicioMs) / 60000));
+
+      // b) redondeo por fracción y mínimo usando la tarifa cargada de la API
+      const { tarifaPorHora, fraccionMinutos, minimoMinutos } = state.config || {};
+      const tarifaMinuto = Number(tarifaPorHora || 15) / 60;
+      const redondeado   = Math.max(minutos, Number(minimoMinutos || 0));
+      const bloques      = Math.ceil(redondeado / Number(fraccionMinutos || 1));
+      const minutosFact  = bloques * Number(fraccionMinutos || 1);
+
+      const importeTiempo = Math.round((tarifaMinuto * minutosFact) * 100) / 100;
+
+      // c) cierre real (ticket) en backend
+      await confirmarCierreReal({
+        sucursal_id: Number(state?.sucursalId) || 1,
+        mesa_id: mesaId,
+        minutos_fact: minutosFact,
+        importe_tiempo: importeTiempo,
+        consumo_total: 0,                  // cuando conectemos consumos reales, pásalos aquí
+        efectivo_recibido: importeTiempo,  // demo: efectivo = tiempo
+        metodo_pago: 'efectivo'
+      });
+
+      // d) limpiar local y repintar
+      mesa.inicio = null;
+      mesa.estado = 'libre';
+      renderMesasFromState();
+    } catch (e) {
+      console.error(e);
+      alert('No se pudo finalizar: ' + e.message);
+    }
+    return;
+  }
+});
 // 8) Carga inicial (tarifas + mesas) desde la API real
 async function load(){
   try{
