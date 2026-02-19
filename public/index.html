@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BILLAR JADE — Control de Mesas</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <img src="logo-placeholder.svg" alt="Logo" class="logo"/>
+      <div class="titles">
+        <h1>Billar Jade</h1>
+        <span class="subtitle">Control de Mesas</span>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <label class="inline">
+        Sucursal:
+        <select id="branchSelect" title="Selecciona sucursal">
+          <option value="BILLAR JADE">BILLAR JADE</option>
+          <option value="BILLAR JADE ANEXO">BILLAR JADE ANEXO</option>
+        </select>
+      </label>
+
+      <div class="role-box">
+        <label for="roleSelect">Rol:</label>
+        <select id="roleSelect">
+          <option value="cajero">Cajero</option>
+          <option value="admin">Administrador</option>
+        </select>
+        <input id="adminPin" type="password" placeholder="PIN admin" class="pin hidden" maxlength="6" />
+        <button id="btnIngresarRol" class="btn small">Aplicar</button>
+      </div>
+
+      <div class="tarifa-box">
+        <span class="label">Tarifa</span>
+        <div class="tarifa-values">
+          <span id="lblTarifa">—</span>
+          <span id="lblFraccion">—</span>
+          <span id="lblMinimo">—</span>
+        </div>
+        <button id="btnConfig" class="btn outline" title="Configurar (solo admin)">⚙️ Configurar</button>
+      </div>
+
+      <div class="actions">
+        <button id="btnHistorial" class="btn outline">🧾 Historial</button>
+        <button id="btnReporte" class="btn outline">📊 Reporte</button>
+        <button id="btnCerrarCaja" class="btn danger">💵 Cerrar caja</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section id="mesasSection">
+      <h2>Mesas</h2>
+      <div id="mesasGrid" class="grid"></div>
+    </section>
+  </main>
+
+  <!-- Modal Configuración -->
+  <dialog id="configModal">
+    <form method="dialog" class="modal-card">
+      <h3>Configuración de tarifas</h3>
+      <div class="form-grid">
+        <label>Tarifa (Bs/h)
+          <input id="cfgTarifa" type="number" step="0.01" min="0" />
+        </label>
+        <label>Fracción (min)
+          <input id="cfgFraccion" type="number" min="1" step="1" />
+        </label>
+        <label>Mínimo (min)
+          <input id="cfgMinimo" type="number" min="0" step="1" />
+        </label>
+        <label>PIN Admin
+          <input id="cfgPin" type="password" maxlength="6" />
+        </label>
+        <label>Color principal
+          <input id="cfgColor" type="color" />
+        </label>
+      </div>
+      <div class="row end gap no-print">
+        <button id="btnCancelarConfig" class="btn outline" value="cancel">Cancelar</button>
+        <button id="btnGuardarConfig" class="btn" value="default">Guardar</button>
+      </div>
+      <p class="muted">Los cajeros solo pueden <strong>ver</strong> las tarifas; solo un administrador puede cambiarlas.</p>
+    </form>
+  </dialog>
+
+  <!-- Modal Ticket -->
+  <dialog id="ticketModal">
+    <div class="modal-card ticket">
+      <div id="ticketArea" class="ticket-area">
+        <div class="ticket-header">
+          <h3>🎱 BILLAR JADE</h3>
+          <div class="ticket-sub">Ticket de Consumo</div>
+        </div>
+        <div id="ticketBody" class="ticket-body"></div>
+        <div class="ticket-footer">
+          <small>Gracias por su preferencia</small>
+        </div>
+      </div>
+      <div class="row gap no-print">
+        <button id="btnCerrarTicket" class="btn outline">Cerrar</button>
+        <button id="btnImprimirTicket" class="btn">Imprimir</button>
+        <button id="btnExportarPDF" class="btn outline">Exportar PDF</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Modal Historial -->
+  <dialog id="historialModal">
+    <div class="modal-card wide">
+      <h3>🧾 Historial de tickets (hoy)</h3>
+      <div id="historialTabla" class="table-wrap"></div>
+      <div class="row gap end no-print">
+        <button id="btnExportarCSV" class="btn outline">Exportar CSV</button>
+        <button id="btnCerrarHistorial" class="btn">Cerrar</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Modal Reporte -->
+  <dialog id="reporteModal">
+    <div class="modal-card wide">
+      <h3>📊 Reporte diario (hoy)</h3>
+      <div id="reporteBody"></div>
+      <div class="row gap end no-print">
+        <button id="btnCerrarReporte" class="btn">Cerrar</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Modal Cierre de caja -->
+  <dialog id="cajaModal">
+    <div class="modal-card">
+      <h3>💵 Cierre de caja (hoy)</h3>
+      <div id="cajaBody"></div>
+      <div class="row gap end no-print">
+        <button id="btnConfirmarCierre" class="btn danger">Confirmar cierre</button>
+        <button id="btnCancelarCierre" class="btn outline">Cancelar</button>
+      </div>
+    </div>
+  </dialog>
+
+  <footer class="app-footer">
+    <small>Versión avanzada — sin backend (persistencia local). Fecha: <span id="lblFecha"></span></small>
+  </footer>
+
+ <script defer src="/app.js"></script>
+</body>
+</html>
