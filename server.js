@@ -3,12 +3,17 @@
 import express from 'express';
 import cors from 'cors';
 import pkg from 'pg';
+import path from 'path';
+import { fileURLToPath } from 'url';
 const { Pool } = pkg;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
 // Middlewares
 app.use(express.json());
+
 const ALLOW_ORIGIN = process.env.ALLOW_ORIGIN || '*';
 app.use(
   cors({
@@ -16,6 +21,9 @@ app.use(
     credentials: true,
   })
 );
+
+// Servir el frontend desde la carpeta /public (ESTO VA FUERA DE CORS)
+app.use(express.static(path.join(__dirname, 'public')));
 
 // === Import del SEED (versión ESM) ===
 
