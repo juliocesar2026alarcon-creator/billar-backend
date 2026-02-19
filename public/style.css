@@ -1,0 +1,74 @@
+/* === Tema === */
+:root{
+  --color:#16a34a; /* verde por defecto, configurable */
+  --bg:#0b1220;
+  --panel:#0f172a;
+  --card:#111827;
+  --muted:#9ca3af;
+  --text:#e5e7eb;
+  --border:#1f2a3a;
+  --danger:#ef4444;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Ubuntu,Arial,sans-serif}
+
+.app-header{display:flex;flex-direction:column;gap:8px;padding:10px 14px;background:var(--panel);border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:10px}
+.logo{width:40px;height:40px}
+.titles h1{margin:0;font-size:20px;letter-spacing:0.5px}
+.subtitle{color:var(--muted);font-size:12px}
+.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.inline select{margin-left:6px}
+.role-box{display:flex;align-items:center;gap:6px}
+.pin.hidden{display:none}
+.tarifa-box{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--border);border-radius:10px;background:#0b1527}
+.tarifa-box .label{font-weight:600;color:var(--muted)}
+.tarifa-values{display:flex;gap:6px}
+.tarifa-values span{background:#0c1a2d;border:1px solid #18253a;border-radius:6px;padding:4px 6px;font-size:12px}
+.actions{display:flex;gap:6px}
+
+.btn{background:var(--color);border:none;color:white;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:600}
+.btn:hover{filter:brightness(1.05)}
+.btn.small{padding:6px 10px;font-size:12px}
+.btn.outline{background:transparent;border:1px solid #2e3a4f;color:#d1d5db}
+.btn.outline:hover{background:#0b1527}
+.btn.danger{background:var(--danger)}
+
+main{padding:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.card-header{display:flex;align-items:center;justify-content:space-between}
+.badge{border-radius:999px;padding:3px 8px;font-size:12px}
+.badge.free{background:#0b1527;border:1px solid #152238;color:#9ca3af}
+.badge.busy{background:#0d1b2a;border:1px solid #1f3b5d;color:#93c5fd}
+.time{font-variant-numeric:tabular-nums;color:#dbeafe}
+.controls-row{display:flex;gap:8px;flex-wrap:wrap}
+.controls-row .btn{flex:1}
+
+/* Modales */
+dialog{background:transparent;border:none}
+.modal-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;min-width:320px;max-width:760px}
+.modal-card.wide{max-width:980px}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:12px 0}
+.table-wrap{overflow:auto;max-height:60vh;border:1px solid var(--border);border-radius:8px}
+.table{width:100%;border-collapse:collapse}
+.table th,.table td{border-bottom:1px solid #1f2a3a;padding:8px;font-size:13px}
+.table th{position:sticky;top:0;background:#0b1527}
+.muted{color:var(--muted)}
+.row{display:flex;align-items:center}
+.row.end{justify-content:flex-end}
+.row.gap{gap:8px}
+
+/* Ticket 80mm */
+.ticket{max-width:360px}
+.ticket-area{background:white;color:#111;padding:8px;border-radius:8px}
+.ticket-header{border-bottom:1px dashed #999;padding-bottom:6px;margin-bottom:6px;text-align:center}
+.ticket-header h3{margin:4px 0}
+.ticket-sub{font-size:12px;color:#444}
+.ticket-body{font-family:ui-monospace,Consolas,"Courier New",monospace;font-size:13px}
+.ticket-row{display:flex;justify-content:space-between;margin:4px 0}
+
+@media print{
+  .no-print, header, footer, dialog:not([open]){display:none !important}
+  #ticketModal[open] .ticket-area{width:80mm}
+}
