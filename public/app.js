@@ -321,7 +321,106 @@ window.addEventListener('load', () => {
     try { load(); } catch(e){ console.error('window.load load() error:', e); }
   }
 });
+// ---- Consumo con modal (reemplaza al prompt) ----
+const productosModal   = document.getElementById('productosModal');
+const prodSearch       = document.getElementById('prodSearch');
+const prodCant         = document.getElementById('prodCant');
+const prodLista        = document.getElementById('prodLista');
+const btnProdAgregar   = document.getElementById('btnProdAgregar');
+const btnProdCancelar  = document.getElementById('btnProdCancelar');
 
+let _productos = [];
+let _mesaParaConsumo = null;
+let _productoSeleccionado = null;
+
+async function abrirModalConsumo(mesaId){
+  _mesaParaConsumo = mesaId;
+  _productoSeleccionado = null;
+  if (prodCant)  prodCant.value = 1;
+  if (prodSearch) prodSearch.value = '';
+
+  const sucursalId = Number(state?.sucursalId) || 1;
+  try{
+    _productos = await apiGet(`/productos?sucursal_id=${sucursalId}`);
+    renderListaProductos();
+    productosModal?.showModal();
+    prodSearch?.focus();
+  }catch(e){
+    console.error(e);
+    alert('No se pudieron cargar productos');
+  }
+}
+
+function renderListaProductos(){
+  const q = (prodSearch?.value || '').trim().toLowerCase();
+  const data = _productos.filter(p =>
+    !q || String(p.nombre).toLowerCase().includes(q) || String(p.id).includes(q)
+  );
+  prodLista.innerHTML = `
+    <table class="table">
+      <thead>
+        <tr>
+          <th style="width:70px">ID</th>
+          <th>Producto</th>
+          <th style="width:120px">Precio (Bs)</th>
+          <th style="width:110px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        ${data.map(p => `
+          <tr>
+            <td>${p.id}</td>
+            <td>${p.nombre}</td>
+            <td>Bs ${Number(p.precio).toFixed(2)}</td>
+            <td>
+              seleccionar Seleccionar</button>
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+prodSearch?.addEventListener('input', renderListaProductos);
+
+prodLista?.addEventListener('click', (ev)=>{
+  const el = ev.target;
+  const btn = el?.closest && el.closest('button[data-producto]');
+  if(!btn) return;
+  const pid = Number(btn.getAttribute('data-producto'));
+  _productoSeleccionado = _productos.find(p => Number(p.id) === pid) || null;
+
+  [...prodLista.querySelectorAll('tr')].forEach(tr => tr.classList.remove('selected'));
+  btn.closest('tr')?.classList.add('selected');
+});
+
+btnProdCancelar?.addEventListener('click', ()=> productosModal?.close());
+
+btnProdAgregar?.addEventListener('click', async ()=>{
+  try{
+    if(!_mesaParaConsumo)       return alert('Sin mesa seleccionada');
+    if(!_productoSeleccionado)  return alert('Elegí un producto de la lista');
+    const cantidad = Math.max(1, Number(prodCant?.value || 1));
+
+    await fetch(`${API_BASE_URL}/consumos`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        ticket_id: null, // si luego manejas ticket en curso, pásalo aquí
+        mesa_id: _mesaParaConsumo,
+        producto_id: _productoSeleccionado.id,
+        cantidad
+      })
+    });
+
+    productosModal?.close();
+    alert('Consumo agregado');
+  }catch(e){
+    console.error(e);
+    alert('No se pudo guardar el consumo: ' + e.message);
+  }
+});
 // 14) INIT — asíncrono y usando la API real
 (async function init(){
   try{
