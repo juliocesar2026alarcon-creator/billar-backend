@@ -216,6 +216,21 @@ function updateBtnConsumo(mesaId){
   const items = Number(state.itemsPorMesa?.[mesaId] || 0);
   btn.textContent = items > 0 ? `Consumo (${items})` : '➕ Consumo';
 }
+// --- Muestra/Oculta acciones según el rol actual ---
+function aplicarPermisosPorRol(){
+  const esAdmin = state.role === 'admin';
+
+  // Solo para Admin:
+  document.getElementById('btnConfig')   ?.classList?.toggle('hidden', !esAdmin);
+  document.getElementById('btnReporte')  ?.classList?.toggle('hidden', !esAdmin);
+  document.getElementById('btnInsumos')  ?.classList?.toggle('hidden', !esAdmin);
+
+  // Historial: visible para ambos (déjalo visible; si quieres solo admin, cambia a !esAdmin)
+  document.getElementById('btnHistorial')?.classList?.toggle('hidden', false);
+
+  // El campo PIN se muestra si el combo de Rol está en "admin"
+  adminPin.classList?.toggle?.('hidden', !(roleSelect.value === 'admin'));
+}
 // 10) Utilidades de UI (neutras si no existen nodos)
 function aplicarTema(){ /* opcional: tu implementación anterior */ }
 const branchSelect = document.getElementById('branchSelect') || { value: state.branch, addEventListener: ()=>{} };
