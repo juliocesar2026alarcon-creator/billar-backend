@@ -153,5 +153,23 @@
   </footer>
 
  <script defer src="/app.js"></script>
+  <!-- Modal Productos (Consumo) -->
+<dialog id="productosModal">
+  <div class="modal-card wide">
+    <h3>➕ Agregar consumo</h3>
+
+    <div class="row gap" style="margin-bottom:8px;">
+      <input id="prodSearch" class="input" placeholder="Buscar producto..." />
+      <input id="prodCant" type="number" min="1" step="1" value="1" class="input" style="width:120px" />
+    </div>
+
+    <div id="prodLista" class="table-wrap" style="max-height:320px; overflow:auto;"></div>
+
+    <div class="row gap end no-print" style="margin-top:10px;">
+      <button id="btnProdCancelar" class="btn outline">Cancelar</button>
+      <button id="btnProdAgregar" class="btn">Agregar</button>
+    </div>
+  </div>
+</dialog>
 </body>
 </html>
