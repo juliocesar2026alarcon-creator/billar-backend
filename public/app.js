@@ -364,15 +364,25 @@ function renderListaProductos(){
 
 prodSearch?.addEventListener('input', renderListaProductos);
 
-prodLista?.addEventListener('click', (ev)=>{
+// Capturar clic en “Seleccionar” dentro de la tabla del modal
+prodLista?.addEventListener('click', (ev) => {
   const el = ev.target;
+
+  // Traza para verificar que llega el clic (podés quitarla luego)
+  console.log('[prodLista click]', el?.tagName, el?.textContent?.trim());
+
+  // Buscar el botón “Seleccionar” más cercano con data-producto
   const btn = el?.closest && el.closest('button[data-producto]');
-  if(!btn) return;
+  if (!btn) return;
+
   const pid = Number(btn.getAttribute('data-producto'));
   _productoSeleccionado = _productos.find(p => Number(p.id) === pid) || null;
 
+  // Marca visual en la fila seleccionada
   [...prodLista.querySelectorAll('tr')].forEach(tr => tr.classList.remove('selected'));
   btn.closest('tr')?.classList.add('selected');
+
+  console.log('[producto seleccionado]', _productoSeleccionado);
 });
 
 btnProdCancelar?.addEventListener('click', ()=> productosModal?.close());
