@@ -496,6 +496,116 @@ document.getElementById('btnIngresarRol')?.addEventListener('click', () => {
   aplicarPermisosPorRol();     // muestra/oculta botones según el rol
   alert(`Rol aplicado: ${rol}`);
 });
+// --- Insumos: abrir modal y listar productos de la sucursal ---
+const insumosModal     = document.getElementById('insumosModal');
+const btnInsumos       = document.getElementById('btnInsumos');
+const btnInsumosCerrar = document.getElementById('btnInsumosCerrar');
+const insSearch        = document.getElementById('insSearch');
+const insTabla         = document.getElementById('insTabla');
+
+let _insumos = [];
+
+async function cargarInsumos() {
+  const sucursalId = Number(state?.sucursalId) || 1;
+  _insumos = await apiGet(`/productos?sucursal_id=${sucursalId}`);
+  renderInsumos();
+}
+
+function renderInsumos() {
+  const q = (insSearch?.value || '').trim().toLowerCase();
+  const data = _insumos.filter(p =>
+    !q || String(p.nombre).toLowerCase().includes(q) || String(p.id).includes(q)
+  );
+  insTabla.innerHTML = `
+    <table class="table">
+      <thead>
+        <tr>
+          <th style="width:80px">ID</th>
+          <th>Producto</th>
+          <th style="width:140px">Precio (Bs)</th>
+          <th style="width:140px">Categoría</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${data.map(p => `
+          <tr>
+            <td>${p.id}</td>
+            <td>${p.nombre}</td>
+            <td>${Number(p.precio).toFixed(2)}</td>
+            <td>${p.categoria ?? '-'}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+btnInsumos?.addEventListener('click', async () => {
+  try {
+    await cargarInsumos();
+    insumosModal?.showModal();
+    insSearch?.focus();
+  } catch(e) {
+    console.error(e);
+    alert('No se pudieron cargar los insumos');
+  }
+});
+btnInsumosCerrar?.addEventListener('click', () => insumosModal?.close());
+insSearch?.addEventListener('input', renderInsumos);
+// --- Historial: abre modal (placeholder; luego lo conectamos a la BD) ---
+document.getElementById('btnHistorial')?.addEventListener('click', () => {
+  const d = document.getElementById('historialModal');
+  const c = document.getElementById('historialTabla');
+  if (c) {
+    c.innerHTML = `
+      <div class="muted" style="padding:12px">
+        Aquí verás los tickets del día. Si querés, conecto el backend (GET /tickets?fecha=YYYY-MM-DD&sucursal_id=...).
+      </div>`;
+  }
+  d?.showModal();
+});
+document.getElementById('btnCerrarHistorial')?.addEventListener('click', () => {
+  document.getElementById('historialModal')?.close();
+});
+// --- Reporte: abre modal (placeholder; luego lo conectamos a la BD) ---
+document.getElementById('btnReporte')?.addEventListener('click', () => {
+  const c = document.getElementById('reporteBody');
+  if (c) {
+    c.innerHTML = `
+      <div class="muted" style="padding:12px">
+        Aquí irá el reporte diario (totales por método de pago, tiempo y consumo).
+        Si querés, armo el endpoint y lo lleno con datos reales.
+      </div>`;
+  }
+  document.getElementById('reporteModal')?.showModal();
+});
+document.getElementById('btnCerrarReporte')?.addEventListener('click', () => {
+  document.getElementById('reporteModal')?.close();
+});
+// --- Configurar: muestra modal y guarda en memoria (local) ---
+document.getElementById('btnConfig')?.addEventListener('click', () => {
+  document.getElementById('cfgTarifa').value   = state.config.tarifaPorHora ?? 15;
+  document.getElementById('cfgFraccion').value = state.config.fraccionMinutos ?? 5;
+  document.getElementById('cfgMinimo').value   = state.config.minimoMinutos ?? 30;
+  document.getElementById('configModal')?.showModal();
+});
+
+document.getElementById('btnCancelarConfig')?.addEventListener('click', () => {
+  document.getElementById('configModal')?.close();
+});
+
+document.getElementById('btnGuardarConfig')?.addEventListener('click', (ev) => {
+  ev.preventDefault();
+  if (state.role !== 'admin') { alert('Solo admin puede guardar tarifas'); return; }
+
+  state.config.tarifaPorHora   = Number(document.getElementById('cfgTarifa').value || 15);
+  state.config.fraccionMinutos = Number(document.getElementById('cfgFraccion').value || 5);
+  state.config.minimoMinutos   = Number(document.getElementById('cfgMinimo').value || 30);
+
+  renderTarifasFromState();
+  document.getElementById('configModal')?.close();
+  alert('Tarifas actualizadas (local). Si querés, lo persisto en la base.');
+});
 // 14) INIT — asíncrono y usando la API real
 (async function init(){
   try{
