@@ -503,7 +503,7 @@ document.getElementById('btnIngresarRol')?.addEventListener('click', () => {
     branchSelect.value = state.branch;
     roleSelect.value   = state.role;
     adminPin.classList.toggle('hidden', roleSelect.value !== 'admin');
-
+    aplicarPermisosPorRol();
     // 🔑 Cargar desde la API y pintar
     await load();
 
