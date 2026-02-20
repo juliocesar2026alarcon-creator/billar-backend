@@ -443,6 +443,24 @@ updateBtnConsumo(_mesaParaConsumo);
     alert('No se pudo guardar el consumo: ' + e.message);
   }
 });
+// --- Cerrar sesión (volver al rol Cajero) ---
+document.getElementById('btnCerrarSesion')?.addEventListener('click', () => {
+  // (Opcional) confirmación:
+  // if (!confirm('¿Seguro que querés cerrar la sesión de Administrador?')) return;
+
+  // 1) Volver al rol básico
+  state.role = 'cajero';
+
+  // 2) Reflejar en la UI
+  roleSelect.value = 'cajero';
+  if (adminPin) adminPin.value = '';
+
+  // 3) Aplicar reglas de visibilidad por rol
+  aplicarPermisosPorRol();
+
+  // 4) Aviso
+  alert('Sesión cerrada. Rol: Cajero');
+});
 // 14) INIT — asíncrono y usando la API real
 (async function init(){
   try{
