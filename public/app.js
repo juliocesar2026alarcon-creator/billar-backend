@@ -335,6 +335,7 @@ function renderListaProductos(){
   const data = _productos.filter(p =>
     !q || String(p.nombre).toLowerCase().includes(q) || String(p.id).includes(q)
   );
+
   prodLista.innerHTML = `
     <table class="table">
       <thead>
@@ -352,7 +353,7 @@ function renderListaProductos(){
             <td>${p.nombre}</td>
             <td>Bs ${Number(p.precio).toFixed(2)}</td>
             <td>
-              seleccionar Seleccionar</button>
+              <button class="btn small" data-producto="${p.id}">Seleccionar</button>
             </td>
           </tr>
         `).join('')}
