@@ -336,7 +336,8 @@ function renderListaProductos(){
     !q || String(p.nombre).toLowerCase().includes(q) || String(p.id).includes(q)
   );
 
-  prodLista.innerHTML = `
+  
+prodLista.innerHTML = `
     <table class="table">
       <thead>
         <tr>
@@ -353,7 +354,7 @@ function renderListaProductos(){
             <td>${p.nombre}</td>
             <td>Bs ${Number(p.precio).toFixed(2)}</td>
             <td>
-              <button class="btn small" data-producto="${p.id}">Seleccionar</button>
+              <button type="button" class="btn small" data-producto="${p.id}">Seleccionar</button>
             </td>
           </tr>
         `).join('')}
@@ -362,26 +363,37 @@ function renderListaProductos(){
   `;
 }
 
+
 prodSearch?.addEventListener('input', renderListaProductos);
 
+// Capturar clic en “Seleccionar” dentro de la tabla del modal
 // Capturar clic en “Seleccionar” dentro de la tabla del modal
 prodLista?.addEventListener('click', (ev) => {
   const el = ev.target;
 
-  // Traza para verificar que llega el clic (podés quitarla luego)
+  // Traza para confirmar que el click llega (podés quitarla después de probar)
   console.log('[prodLista click]', el?.tagName, el?.textContent?.trim());
 
-  // Buscar el botón “Seleccionar” más cercano con data-producto
+  // Buscar el botón “Seleccionar” más cercano que tenga data-producto
   const btn = el?.closest && el.closest('button[data-producto]');
-  if (!btn) return;
+  if (!btn) return; // clic fuera del botón
 
   const pid = Number(btn.getAttribute('data-producto'));
-  _productoSeleccionado = _productos.find(p => Number(p.id) === pid) || null;
+  const seleccionado = _productos.find(p => Number(p.id) === pid) || null;
+  if (!seleccionado) {
+    console.warn('Producto no encontrado en _productos:', pid, _productos);
+    return;
+  }
 
-  // Marca visual en la fila seleccionada
-  [...prodLista.querySelectorAll('tr')].forEach(tr => tr.classList.remove('selected'));
-  btn.closest('tr')?.classList.add('selected');
+  _productoSeleccionado = seleccionado;
 
+  // Marca visual en la fila
+  prodLista.querySelectorAll('tr.selected').forEach(tr => tr.classList.remove('selected'));
+  const tr = btn.closest('tr');
+  if (tr) tr.classList.add('selected');
+
+  // Feedback inmediato en el botón
+  btn.textContent = '✓ Seleccionado';
   console.log('[producto seleccionado]', _productoSeleccionado);
 });
 
