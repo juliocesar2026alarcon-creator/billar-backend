@@ -22,7 +22,7 @@ const state = {
   mesas: [],
   historial: [],
   mesaActual: null,           // opcional: la mesa en foco si tu UI la usa
-  minutosFacturados: 0,
+  minutosFacturados: 0,        // 👈 COMA AQUÍ
   
   // acumuladores por mesa (para consumo)
   consumoPorMesa: {},         // { [mesaId]: total Bs }
