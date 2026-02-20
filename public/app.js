@@ -23,6 +23,8 @@ const state = {
   historial: [],
   mesaActual: null,           // opcional: la mesa en foco si tu UI la usa
   minutosFacturados: 0        // opcional: si tu UI lo calcula
+  consumoPorMesa: {},         // { [mesaId]: total Bs }
+  itemsPorMesa: {},           // { [mesaId]: cantidad de ítems }
 };
 window.state = state; // compatibilidad global
 
@@ -77,6 +79,7 @@ function renderMesasFromState(){
   </div>
 `;
 grid.appendChild(card);
+    updateBtnConsumo(m.id);
   });
 }
 // Delegación de clics para acciones de mesa: iniciar / consumo / finalizar
@@ -122,19 +125,23 @@ document.addEventListener('click', async (ev) => {
       const minutosFact  = bloques * Number(fraccionMinutos || 1);
 
       const importeTiempo = Math.round((tarifaMinuto * minutosFact) * 100) / 100;
-
+// NUEVO: consumo acumulado local para esta mesa (redondeado a 2 decimales)
+const consumoTotal = Math.round(Number(state.consumoPorMesa?.[mesaId] || 0) * 100) / 100;
       // c) cierre real (ticket) en backend
       await confirmarCierreReal({
         sucursal_id: Number(state?.sucursalId) || 1,
-        mesa_id: mesaId,
+          mesa_id: mesaId,
         minutos_fact: minutosFact,
         importe_tiempo: importeTiempo,
-        consumo_total: 0,                  // cuando conectemos consumos reales, pásalos aquí
-        efectivo_recibido: importeTiempo,  // demo: efectivo = tiempo
+        consumo_total: consumoTotal,
+        efectivo_recibido: importeTiempo + consumoTotal,
         metodo_pago: 'efectivo'
       });
 
       // d) limpiar local y repintar
+      delete state.consumoPorMesa[mesaId];
+      delete state.itemsPorMesa[mesaId];
+      updateBtnConsumo(mesaId);
       mesa.inicio = null;
       mesa.estado = 'libre';
       renderMesasFromState();
@@ -199,7 +206,14 @@ function msToHMS(ms){
   const ss = String(s%60).padStart(2,'0');
   return `${hh}:${mm}:${ss}`;
 }
-
+// --- Actualiza el texto del botón "Consumo" mostrando el contador (n) ---
+function updateBtnConsumo(mesaId){
+  const selector = `button[data-action="consumo"][data-mesa="${mesaId}"]`;
+  const btn = document.querySelector(selector);
+  if (!btn) return;
+  const items = Number(state.itemsPorMesa?.[mesaId] || 0);
+  btn.textContent = items > 0 ? `Consumo (${items})` : '➕ Consumo';
+}
 // 10) Utilidades de UI (neutras si no existen nodos)
 function aplicarTema(){ /* opcional: tu implementación anterior */ }
 const branchSelect = document.getElementById('branchSelect') || { value: state.branch, addEventListener: ()=>{} };
@@ -415,7 +429,11 @@ btnProdAgregar?.addEventListener('click', async ()=>{
         cantidad
       })
     });
-
+// === NUEVO: acumular total Bs e ítems para esta mesa y refrescar contador ===
+const totalItem = Number(_productoSeleccionado.precio) * Number(cantidad);
+state.consumoPorMesa[_mesaParaConsumo] = (state.consumoPorMesa[_mesaParaConsumo] || 0) + totalItem;
+state.itemsPorMesa[_mesaParaConsumo]   = (state.itemsPorMesa[_mesaParaConsumo]   || 0) + Number(cantidad);
+updateBtnConsumo(_mesaParaConsumo);
     productosModal?.close();
     alert('Consumo agregado');
   }catch(e){
