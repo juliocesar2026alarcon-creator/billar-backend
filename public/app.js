@@ -103,7 +103,7 @@ document.addEventListener('click', async (ev) => {
   }
 
   // 3) CONSUMO (DEMO): usa prompt; luego lo cambiamos por modal con /productos
-  if  init {
+  if (action === 'consumo') {
   return abrirModalConsumo(mesaId);
 }
 
