@@ -139,7 +139,23 @@
       </div>
     </div>
   </dialog>
+  <!-- Modal Insumos (solo lectura) -->
+<dialog id="insumosModal">
+  <div class="modal-card wide">
+    <h3>📦 Insumos en sucursal</h3>
 
+    <div class="row gap">
+      <input id="insSearch" class="input" placeholder="Buscar por nombre o ID..." />
+    </div>
+
+    <div id="insTabla" class="table-wrap" style="max-height:420px; overflow:auto; margin-top:8px"></div>
+
+    <div class="row gap end no-print">
+      <button id="btnInsumosCerrar" class="btn">Cerrar</button>
+    </div>
+  </div>
+</dialog>
+  
   <!-- Modal Cierre de caja -->
   <dialog id="cajaModal">
     <div class="modal-card">
