@@ -103,30 +103,9 @@ document.addEventListener('click', async (ev) => {
   }
 
   // 3) CONSUMO (DEMO): usa prompt; luego lo cambiamos por modal con /productos
-  if (action === 'consumo') {
-    try {
-      const productoId = Number(prompt('ID de producto (ej. 1):', '1'));
-      const cantidad   = Number(prompt('Cantidad:', '1'));
-      if (!productoId || !cantidad) return;
-
-      await fetch(`${API_BASE_URL}/consumos`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ticket_id: null,     // si luego manejas ticket en curso, pásalo aquí
-          mesa_id: mesaId,
-          producto_id: productoId,
-          cantidad
-        })
-      });
-
-      alert('Consumo registrado (demo).');
-    } catch (e) {
-      console.error(e);
-      alert('No se pudo registrar consumo: ' + e.message);
-    }
-    return;
-  }
+  if  init {
+  return abrirModalConsumo(mesaId);
+}
 
   // 4) FINALIZAR: calcula minutos (con fracción y mínimo) y cierra ticket real
   if (action === 'finalizar') {
