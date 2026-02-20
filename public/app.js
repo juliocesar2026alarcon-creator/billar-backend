@@ -461,6 +461,26 @@ document.getElementById('btnCerrarSesion')?.addEventListener('click', () => {
   // 4) Aviso
   alert('Sesión cerrada. Rol: Cajero');
 });
+// Cuando cambiás el Rol en el combo, mostrar/ocultar el PIN
+roleSelect?.addEventListener('change', () => {
+  const esAdmin = roleSelect.value === 'admin';
+  adminPin.classList?.toggle?.('hidden', !esAdmin);
+});
+
+// Al pulsar "Aplicar", si es admin pide y valida PIN, luego aplica permisos
+const PIN_ADMIN = '123456'; // temporal
+document.getElementById('btnIngresarRol')?.addEventListener('click', () => {
+  const rol = roleSelect.value;
+
+  if (rol === 'admin') {
+    const pin = (adminPin?.value || '').trim();
+    if (pin !== PIN_ADMIN) { alert('PIN admin inválido'); return; }
+  }
+
+  state.role = rol;            // guarda el rol elegido
+  aplicarPermisosPorRol();     // muestra/oculta botones según el rol
+  alert(`Rol aplicado: ${rol}`);
+});
 // 14) INIT — asíncrono y usando la API real
 (async function init(){
   try{
