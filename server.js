@@ -221,6 +221,73 @@ app.post('/tickets/cerrar', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 8080;
+// === HISTORIAL: tickets del día (por sucursal) ===
+app.get('/tickets', async (req, res) => {
+  try {
+    const sucursalId = Number(req.query.sucursal_id) || 1;
+
+    // Fecha "YYYY-MM-DD"
+    const hoy = new Date();
+    const y = hoy.getFullYear();
+    const m = String(hoy.getMonth() + 1).padStart(2, '0');
+    const d = String(hoy.getDate()).padStart(2, '0');
+    const fecha = `${y}-${m}-${d}`;
+
+    const { rows } = await pool.query(
+      `SELECT id, sucursal_id, mesa_id, minutos_fact, importe_tiempo, consumo_total,
+              metodo_pago, efectivo_recibido, created_at
+         FROM tickets
+        WHERE sucursal_id = $1
+          AND created_at BETWEEN $2 AND $3
+        ORDER BY created_at DESC`,
+      [sucursalId, `${fecha} 00:00:00`, `${fecha} 23:59:59`]
+    );
+
+    res.json({ fecha, sucursal_id: sucursalId, tickets: rows || [] });
+  } catch (e) {
+    console.error('GET /tickets error', e);
+    res.status(500).json({ ok: false, error: String(e) });
+  }
+});
+// === REPORTE: totales del día por método de pago ===
+app.get('/reporte', async (req, res) => {
+  try {
+    const sucursalId = Number(req.query.sucursal_id) || 1;
+
+    const hoy = new Date();
+    const y = hoy.getFullYear();
+    const m = String(hoy.getMonth() + 1).padStart(2, '0');
+    const d = String(hoy.getDate()).padStart(2, '0');
+    const fecha = `${y}-${m}-${d}`;
+
+    const { rows: porMetodo } = await pool.query(
+      `SELECT metodo_pago,
+              COUNT(*)                           AS cantidad,
+              COALESCE(SUM(importe_tiempo),0)    AS total_tiempo,
+              COALESCE(SUM(consumo_total),0)     AS total_consumo,
+              COALESCE(SUM(efectivo_recibido),0) AS total_cobrado
+         FROM tickets
+        WHERE sucursal_id = $1
+          AND created_at BETWEEN $2 AND $3
+        GROUP BY metodo_pago
+        ORDER BY metodo_pago`,
+      [sucursalId, `${fecha} 00:00:00`, `${fecha} 23:59:59`]
+    );
+
+    const totales = (porMetodo || []).reduce((acc, r) => {
+      acc.cantidad        += Number(r.cantidad || 0);
+      acc.total_tiempo    += Number(r.total_tiempo || 0);
+      acc.total_consumo   += Number(r.total_consumo || 0);
+      acc.total_cobrado   += Number(r.total_cobrado || 0);
+      return acc;
+    }, { cantidad: 0, total_tiempo: 0, total_consumo: 0, total_cobrado: 0 });
+
+    res.json({ fecha, sucursal_id: sucursalId, por_metodo: porMetodo || [], totales });
+  } catch (e) {
+    console.error('GET /reporte error', e);
+    res.status(500).json({ ok: false, error: String(e) });
+  }
+});
 app.listen(PORT, async () => {
   console.log('API Billar iniciando en', PORT);
   await runInit();
