@@ -233,15 +233,16 @@ app.get('/tickets', async (req, res) => {
     const d = String(hoy.getDate()).padStart(2, '0');
     const fecha = `${y}-${m}-${d}`;
 
-    // IMPORTANTE: aliasamos nombres que espera el frontend
-    //  - total -> importe_tiempo
-    //  - 0     -> consumo_total (por ahora no se guarda en columna)
+    // Aliasamos nombres que espera el frontend:
+    // - minutos_fact: si no existe, lo calculamos desde mesa_ms (ms → min)
+    // - total -> importe_tiempo
+    // - consumo_total: por ahora 0 (hasta que lo guardemos en DB)
     const { rows } = await pool.query(
       `SELECT
          id,
          sucursal_id,
          mesa_id,
-         minutos_fact,
+         COALESCE(minutos_fact, ROUND(COALESCE(mesa_ms, 0) / 60000.0), 0)::int AS minutos_fact,
          total                       AS importe_tiempo,
          0                           AS consumo_total,
          metodo_pago,
