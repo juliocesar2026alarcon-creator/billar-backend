@@ -227,24 +227,24 @@ app.get('/tickets', async (req, res) => {
     const sucursalId = Number(req.query.sucursal_id) || 1;
 
     // Fecha "YYYY-MM-DD" (día actual)
-    const hoy = new Date();
-    const y = hoy.getFullYear();
-    const m = String(hoy.getMonth() + 1).padStart(2, '0');
-    const d = String(hoy.getDate()).padStart(2, '0');
+    const hoy   = new Date();
+    const y     = hoy.getFullYear();
+    const m     = String(hoy.getMonth() + 1).padStart(2, '0');
+    const d     = String(hoy.getDate()).padStart(2, '0');
     const fecha = `${y}-${m}-${d}`;
 
     // IMPORTANTE:
     // - tu tabla NO tiene minutos_fact ⇒ lo calculamos desde mesa_ms (ms → min)
-    // - total es el tiempo cobrado ⇒ lo exponemos como importe_tiempo
+    // - total = importe del tiempo ⇒ lo exponemos como importe_tiempo
     // - consumo_total hoy no se guarda en tickets ⇒ 0
     const { rows } = await pool.query(
       `SELECT
          id,
          sucursal_id,
          mesa_id,
-         COALESCE(minutos_fact, ROUND(COALESCE(mesa_ms, 0) / 60000.0), 0)::int AS minutos_fact,
-         total                       AS importe_tiempo,
-         0                           AS consumo_total,
+         ROUND(COALESCE(mesa_ms, 0) / 60000.0)::int AS minutos_fact,
+         total                                       AS importe_tiempo,
+         0                                           AS consumo_total,
          metodo_pago,
          efectivo_recibido,
          created_at
