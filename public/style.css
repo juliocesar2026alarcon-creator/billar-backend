@@ -175,3 +175,78 @@ body {
   background-attachment: fixed;       /* efecto pro en scroll */
   background-repeat: repeat, repeat;
 }
+/* === Botones pro en claro === */
+.btn {
+  border-radius: 8px !important;
+  border: 1px solid #cbd5e1 !important;      /* slate-300 */
+  background: #f8fafc !important;            /* slate-50 */
+  color: #0f172a !important;                 /* slate-900 */
+  transition: transform .06s ease, box-shadow .12s ease !important;
+}
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0,0,0,.08);
+}
+
+/* Acciones principales en mesas (verde) */
+button[data-action="iniciar"],
+button[data-action="consumo"],
+button[data-action="finalizar"] {
+  background: #10b981 !important;      /* emerald-500 */
+  border-color: #059669 !important;    /* emerald-600 */
+  color: #ffffff !important;
+}
+button[data-action="iniciar"]:hover,
+button[data-action="consumo"]:hover,
+button[data-action="finalizar"]:hover {
+  background: #059669 !important;      /* emerald-600 */
+}
+
+/* Secundarios (azules) – p.ej. outline/toolbar */
+.btn.outline {
+  background: #ffffff !important;
+  border-color: #93c5fd !important;    /* blue-300 */
+  color: #1d4ed8 !important;           /* blue-700 */
+}
+.btn.outline:hover {
+  background: #eff6ff !important;      /* blue-50 */
+  border-color: #60a5fa !important;    /* blue-400 */
+}
+
+/* Peligro (cerrar caja) */
+.btn.danger {
+  background: #ef4444 !important;      /* red-500 */
+  border-color: #dc2626 !important;    /* red-600 */
+  color: #ffffff !important;
+}
+.btn.danger:hover {
+  background: #dc2626 !important;      /* red-600 */
+}
+
+/* Botones del modal y de tabla */
+.modal-card .btn,
+.table .btn {
+  border-radius: 6px !important;
+}
+/* === Header & toolbar claros === */
+.app-header {
+  background: #ffffff !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+.toolbar {
+  background: #ffffff !important;
+}
+.label, .subtitle {
+  color: #334155 !important; /* slate-700 */
+}
+
+/* Tarifa “chip” */
+.tarifa-values span {
+  display: inline-block;
+  background: #f1f5f9 !important;   /* slate-100 */
+  border: 1px solid #e5e7eb !important;
+  border-radius: 999px;
+  padding: 2px 10px;
+  color: #0f172a !important;
+  font-weight: 600;
+}
