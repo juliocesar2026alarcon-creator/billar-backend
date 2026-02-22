@@ -242,7 +242,7 @@ app.get('/tickets', async (req, res) => {
          id,
          sucursal_id,
          mesa_id,
-         ROUND(COALESCE(mesa_ms, 0) / 60000.0)::int AS minutos_fact,
+        0::int AS minutos_fact,
          total                                       AS importe_tiempo,
          0                                           AS consumo_total,
          metodo_pago,
