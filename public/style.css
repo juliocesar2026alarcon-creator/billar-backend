@@ -250,3 +250,31 @@ button[data-action="finalizar"]:hover {
   color: #0f172a !important;
   font-weight: 600;
 }
+/* === Fondo claro con patrón sutil de bolas de billar === */
+body {
+  background: #ffffff !important;
+  color: #111827 !important;
+
+  /* grano muy sutil + patrón SVG */
+  background-image:
+    radial-gradient(circle at 25% 25%, rgba(0,0,0,0.025) 0 1px, transparent 1px),
+    url("data:image/svg+xml;utf8,\
+      <svg xmlns='http://www.w3.org/2000/svg' width='220' height='220' viewBox='0 0 220 220'>\
+        <rect width='220' height='220' fill='white'/>\
+        <!-- bola 1 (amarillo) -->\
+        <circle cx='60' cy='60' r='18' fill='%23FDE047' stroke='%23EAB308' stroke-width='2'/>\
+        <circle cx='60' cy='60' r='7' fill='white'/>\
+        <text x='56' y='64' font-family='Arial' font-size='9' fill='%2333343F'>1</text>\
+        <!-- bola 2 (azul) -->\
+        <circle cx='160' cy='80' r='18' fill='%2360A5FA' stroke='%233B82F6' stroke-width='2'/>\
+        <circle cx='160' cy='80' r='7' fill='white'/>\
+        <text x='156' y='84' font-family='Arial' font-size='9' fill='%2333343F'>2</text>\
+        <!-- bola 3 (rojo) -->\
+        <circle cx='110' cy='160' r='18' fill='%23FCA5A5' stroke='%23EF4444' stroke-width='2'/>\
+        <circle cx='110' cy='160' r='7' fill='white'/>\
+        <text x='106' y='164' font-family='Arial' font-size='9' fill='%2333343F'>3</text>\
+      </svg>");
+  background-size: auto, 340px 340px; /* grano + patrón más grande (suave) */
+  background-repeat: repeat, repeat;
+  background-attachment: fixed; /* efecto pro al desplazar */
+}
