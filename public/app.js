@@ -552,35 +552,120 @@ btnInsumos?.addEventListener('click', async () => {
 });
 btnInsumosCerrar?.addEventListener('click', () => insumosModal?.close());
 insSearch?.addEventListener('input', renderInsumos);
-// --- Historial: abre modal (placeholder; luego lo conectamos a la BD) ---
-document.getElementById('btnHistorial')?.addEventListener('click', () => {
-  const d = document.getElementById('historialModal');
-  const c = document.getElementById('historialTabla');
-  if (c) {
-    c.innerHTML = `
-      <div class="muted" style="padding:12px">
-        Aquí verás los tickets del día. Si querés, conecto el backend (GET /tickets?fecha=YYYY-MM-DD&sucursal_id=...).
-      </div>`;
+// --- Historial: pide /tickets y dibuja tabla real ---
+console.log('[BOOT] registrando listener btnHistorial');
+document.getElementById('btnHistorial')?.addEventListener('click', async () => {
+  try{
+    console.log('[HISTORIAL] click');
+    const sucursalId = Number(state?.sucursalId) || 1;
+    const data = await apiGet(`/tickets?sucursal_id=${sucursalId}`);
+    const cont = document.getElementById('historialTabla');
+    if (!cont) return;
+
+    const rows = data?.tickets || [];
+    if (!rows.length) {
+      cont.innerHTML = `<div class="muted" style="padding:12px">Sin tickets en el día.</div>`;
+    } else {
+      cont.innerHTML = `
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="width:80px">Ticket</th>
+              <th style="width:80px">Mesa</th>
+              <th style="width:120px">Hora</th>
+              <th style="width:100px">Min</th>
+              <th style="width:120px">Tiempo (Bs)</th>
+              <th style="width:120px">Consumo (Bs)</th>
+              <th style="width:120px">Total (Bs)</th>
+              <th style="width:120px">Pago</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(t => `
+              <tr>
+                <td>#${t.id}</td>
+                <td>${t.mesa_id}</td>
+                <td>${new Date(t.created_at).toLocaleTimeString('es-BO')}</td>
+                <td>${Number(t.minutos_fact || 0)}</td>
+                <td>${Number(t.importe_tiempo || 0).toFixed(2)}</td>
+                <td>${Number(t.consumo_total || 0).toFixed(2)}</td>
+                <td>${Number(t.efectivo_recibido || 0).toFixed(2)}</td>
+                <td>${t.metodo_pago || '-'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    document.getElementById('historialModal')?.showModal();
+
+    // Botón Cerrar del modal
+    document.getElementById('btnCerrarHistorial')?.addEventListener('click', () => {
+      document.getElementById('historialModal')?.close();
+    });
+  }catch(e){
+    console.error(e);
+    alert('No se pudo cargar el historial: ' + e.message);
   }
-  d?.showModal();
 });
-document.getElementById('btnCerrarHistorial')?.addEventListener('click', () => {
-  document.getElementById('historialModal')?.close();
-});
-// --- Reporte: abre modal (placeholder; luego lo conectamos a la BD) ---
-document.getElementById('btnReporte')?.addEventListener('click', () => {
-  const c = document.getElementById('reporteBody');
-  if (c) {
+
+// --- Reporte: pide /reporte y dibuja totales reales ---
+console.log('[BOOT] registrando listener btnReporte');
+document.getElementById('btnReporte')?.addEventListener('click', async () => {
+  try{
+    console.log('[REPORTE] click');
+    const sucursalId = Number(state?.sucursalId) || 1;
+    const data = await apiGet(`/reporte?sucursal_id=${sucursalId}`);
+    const c = document.getElementById('reporteBody');
+    if (!c) return;
+
+    const pm  = data?.por_metodo || [];
+    const tot = data?.totales    || {cantidad:0,total_tiempo:0,total_consumo:0,total_cobrado:0};
+
     c.innerHTML = `
-      <div class="muted" style="padding:12px">
-        Aquí irá el reporte diario (totales por método de pago, tiempo y consumo).
-        Si querés, armo el endpoint y lo lleno con datos reales.
-      </div>`;
+      <div class="muted" style="margin-bottom:8px">Fecha: ${data?.fecha || '-'}</div>
+      <table class="table">
+        <thead>
+          <tr>
+            <th style="width:140px">Método</th>
+            <th style="width:100px">Tickets</th>
+            <th style="width:120px">Tiempo (Bs)</th>
+            <th style="width:120px">Consumo (Bs)</th>
+            <th style="width:120px">Cobrado (Bs)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${pm.map(r => `
+            <tr>
+              <td>${r.metodo_pago || '-'}</td>
+              <td>${Number(r.cantidad || 0)}</td>
+              <td>${Number(r.total_tiempo || 0).toFixed(2)}</td>
+              <td>${Number(r.total_consumo || 0).toFixed(2)}</td>
+              <td>${Number(r.total_cobrado || 0).toFixed(2)}</td>
+            </tr>
+          `).join('')}
+          <tr>
+            <td><strong>TOTALES</strong></td>
+            <td><strong>${Number(tot.cantidad || 0)}</strong></td>
+            <td><strong>${Number(tot.total_tiempo || 0).toFixed(2)}</strong></td>
+            <td><strong>${Number(tot.total_consumo || 0).toFixed(2)}</strong></td>
+            <td><strong>${Number(tot.total_cobrado || 0).toFixed(2)}</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    `;
+
+    document.getElementById('reporteModal')?.showModal();
+
+    // Botón Cerrar del modal
+    document.getElementById('btnCerrarReporte')?.addEventListener('click', () => {
+      document.getElementById('reporteModal')?.close();
+    });
+  }catch(e){
+    console.error(e);
+    alert('No se pudo cargar el reporte: ' + e.message);
   }
-  document.getElementById('reporteModal')?.showModal();
-});
-document.getElementById('btnCerrarReporte')?.addEventListener('click', () => {
-  document.getElementById('reporteModal')?.close();
 });
 // --- Configurar: muestra modal y guarda en memoria (local) ---
 document.getElementById('btnConfig')?.addEventListener('click', () => {
