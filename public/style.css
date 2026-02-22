@@ -278,3 +278,128 @@ body {
   background-repeat: repeat, repeat;
   background-attachment: fixed; /* efecto pro al desplazar */
 }
+/* =========================================
+   FONDO CLARO CON PATRÓN DE BOLAS DE BILLAR
+   ========================================= */
+html, body {
+  background: #ffffff !important;
+  color: #111827 !important;
+}
+
+/* Grano muy sutil + patrón SVG de bolas */
+body {
+  background-image:
+    radial-gradient(circle at 25% 25%, rgba(0,0,0,0.025) 0 1px, transparent 1px),
+    url("data:image/svg+xml;utf8,\
+      <svg xmlns='http://www.w3.org/2000/svg' width='220' height='220' viewBox='0 0 220 220'>\
+        <rect width='220' height='220' fill='white'/>\
+        <!-- bola 1 (amarillo) -->\
+        <circle cx='60' cy='60' r='18' fill='%23FDE047' stroke='%23EAB308' stroke-width='2'/>\
+        <circle cx='60' cy='60' r='7' fill='white'/>\
+        <text x='56' y='64' font-family='Arial' font-size='9' fill='%2333343F'>1</text>\
+        <!-- bola 2 (azul) -->\
+        <circle cx='160' cy='80' r='18' fill='%2360A5FA' stroke='%233B82F6' stroke-width='2'/>\
+        <circle cx='160' cy='80' r='7' fill='white'/>\
+        <text x='156' y='84' font-family='Arial' font-size='9' fill='%2333343F'>2</text>\
+        <!-- bola 3 (rojo) -->\
+        <circle cx='110' cy='160' r='18' fill='%23FCA5A5' stroke='%23EF4444' stroke-width='2'/>\
+        <circle cx='110' cy='160' r='7' fill='white'/>\
+        <text x='106' y='164' font-family='Arial' font-size='9' fill='%2333343F'>3</text>\
+      </svg>");
+  background-size: auto, 340px 340px !important; /* patrón suave y espacioso */
+  background-repeat: repeat, repeat !important;
+  background-attachment: fixed !important;
+}
+
+/* Asegurar header/toolbar planos (sin patrón encima) */
+.app-header, .toolbar {
+  background: #ffffff !important;
+  background-image: none !important;
+  border-bottom: 1px solid #e5e7eb !important; /* slate-200 */
+}
+
+/* =========================
+   TARJETAS DE MESAS (cards)
+   ========================= */
+.mesa {
+  background: #ffffff !important;
+  color: #0f172a !important;                 /* slate-900 */
+  border: 1px solid #e5e7eb !important;      /* slate-200 */
+  border-radius: 10px !important;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.06) !important;
+  padding: 12px !important;
+}
+.mesa .mesa-title { font-weight: 700; color: #0f172a !important; }
+.mesa .mesa-estado { color: #334155 !important; } /* slate-700 */
+.mesa .mesa-actions {
+  margin-top: 10px !important;
+  padding-top: 8px !important;
+  border-top: 1px dashed #e5e7eb !important;
+}
+
+/* Más aire entre tarjetas */
+.grid { gap: 16px !important; }
+
+/* ==================================
+   BOTONES (verde/azul/rojo en claro)
+   ================================== */
+.btn {
+  border-radius: 8px !important;
+  border: 1px solid #cbd5e1 !important;      /* slate-300 */
+  background: #f8fafc !important;            /* slate-50 */
+  color: #0f172a !important;
+  transition: transform .06s ease, box-shadow .12s ease !important;
+}
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0,0,0,.08);
+}
+
+/* Acciones principales en mesas (verde) */
+button[data-action="iniciar"],
+button[data-action="consumo"],
+button[data-action="finalizar"] {
+  background: #10b981 !important;      /* emerald-500 */
+  border-color: #059669 !important;    /* emerald-600 */
+  color: #ffffff !important;
+}
+button[data-action="iniciar"]:hover,
+button[data-action="consumo"]:hover,
+button[data-action="finalizar"]:hover {
+  background: #059669 !important;      /* emerald-600 */
+}
+
+/* Outline/toolbar (azules) */
+.btn.outline {
+  background: #ffffff !important;
+  border-color: #93c5fd !important;    /* blue-300 */
+  color: #1d4ed8 !important;           /* blue-700 */
+}
+.btn.outline:hover {
+  background: #eff6ff !important;      /* blue-50 */
+  border-color: #60a5fa !important;    /* blue-400 */
+}
+
+/* Peligro */
+.btn.danger {
+  background: #ef4444 !important;      /* red-500 */
+  border-color: #dc2626 !important;    /* red-600 */
+  color: #ffffff !important;
+}
+.btn.danger:hover { background: #dc2626 !important; }
+
+/* Modales claros y tablas legibles */
+dialog, .modal-card {
+  background: #ffffff !important;
+  color: #111827 !important;
+  border: 1px solid #e5e7eb !important;
+}
+.table th {
+  background: #f1f5f9 !important;      /* slate-100 */
+  color: #0f172a !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+.table td {
+  color: #111827 !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+}
