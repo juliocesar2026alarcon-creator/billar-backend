@@ -72,3 +72,77 @@ dialog{background:transparent;border:none}
   .no-print, header, footer, dialog:not([open]){display:none !important}
   #ticketModal[open] .ticket-area{width:80mm}
 }
+/* === Modo CLARO (override global) === */
+html, body {
+  background: #ffffff !important;
+  color: #111827 !important; /* gris casi negro */
+}
+
+/* Cabecera y toolbar */
+.app-header {
+  background: #ffffff !important;
+  border-bottom: 1px solid #e5e7eb !important; /* gris clarito */
+}
+.toolbar .btn,
+.actions .btn {
+  color: #111827 !important;
+  border-color: #cbd5e1 !important;           /* slate-300 */
+  background: #f8fafc !important;             /* slate-50 */
+}
+.btn.danger { background: #ef4444 !important; color: #fff !important; }
+.btn.outline { background: #ffffff !important; }
+
+/* Tarjetas de mesa */
+.mesa {
+  background: #ffffff !important;
+  color: #111827 !important;
+  border: 1px solid #e5e7eb !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,.06);
+}
+
+/* Etiquetas y textos en tarjetas */
+.mesa .mesa-title { color: #0f172a !important; }  /* slate-900 */
+.mesa .mesa-estado { color: #334155 !important; } /* slate-700 */
+
+/* Dialog / Modales */
+dialog, .modal-card {
+  background: #ffffff !important;
+  color: #111827 !important;
+  border: 1px solid #e5e7eb !important;
+}
+.modal-card.wide { background: #ffffff !important; }
+
+/* Tablas */
+.table th {
+  background: #f1f5f9 !important;   /* slate-100 */
+  color: #0f172a !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+.table td {
+  color: #111827 !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+.table-wrap { background: #ffffff !important; }
+
+/* Inputs */
+.input, select, input, textarea {
+  background: #ffffff !important;
+  color: #111827 !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+/* Badges, info de ticket, etc. */
+#ticketInfo {
+  background: #ecfeff !important;          /* cyan-50 */
+  color: #0e7490 !important;                /* cyan-700 */
+  border: 1px solid #06b6d4 !important;     /* cyan-500 */
+}
+
+/* Estados de botones de acción en mesas */
+button[data-action="iniciar"],
+button[data-action="consumo"],
+button[data-action="finalizar"] {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+}
