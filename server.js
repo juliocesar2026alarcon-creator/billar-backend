@@ -1,50 +1,47 @@
+// server.js — BILLAR: API + FRONT (SPA) en un solo servicio
+
 import express from 'express';
 import cors from 'cors';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// ====== Utilidades de ruta ======
+// ===== RUTAS DE ARCHIVOS /dist y data.json =====
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const DATA_PATH = path.join(__dirname, 'data.json');
+const __dirname  = path.dirname(__filename);
+const DIST       = path.join(__dirname, 'dist');     // <-- Vite deja aquí el build del front
+const DATA_PATH  = path.join(__dirname, 'data.json');
 
-// ====== App / Config ======
-const app = express();
+const app  = express();
 const PORT = process.env.PORT || 3000;
 
+// ===== Middlewares =====
 app.use(cors({
   origin: [
     'http://localhost:5173',
     'https://localhost:5173',
-    // ⬇️ PON AQUÍ la URL de tu front en Render (deja * TEMPORALMENTE si no la sabés)
-    'https://billar-jade-control.onrender.com',
-    '*'
+    '*' // al servir todo en el mismo dominio, igual no habrá CORS
   ],
   credentials: false
 }));
 app.use(express.json());
 
-// ====== Estado / persistencia en archivo ======
+// ===== Estado + persistencia simple en archivo =====
 const defaultState = () => ({
   users: [
-    { id: 'u_admin', username: 'admin',  password: '123456', role: 'Administrador', branchId: 'jade', active: true },
-    { id: 'u_cajero', username: 'cajero', password: '123456', role: 'Cajero',       branchId: 'jade', active: true },
+    { id: 'u_admin',  username: 'admin',  password: '123456', role: 'Administrador', branchId: 'jade',  active: true },
+    { id: 'u_cajero', username: 'cajero', password: '123456', role: 'Cajero',       branchId: 'jade',  active: true }
   ],
   branches: [
     { id: 'jade',  name: 'BILLAR JADE' },
-    { id: 'anexo', name: 'BILLAR JADE ANEXO' },
+    { id: 'anexo', name: 'BILLAR JADE ANEXO' }
   ],
   mesas: [
-    { id: 'm1', name: 'Mesa 1', status: 'libre',  session: null, branchId: 'jade'  },
-    { id: 'm2', name: 'Mesa 2', status: 'libre',  session: null, branchId: 'jade'  },
-    { id: 'm3', name: 'Mesa 3', status: 'libre',  session: null, branchId: 'anexo' },
+    { id: 'm1', name: 'Mesa 1', status: 'libre', session: null, branchId: 'jade'  },
+    { id: 'm2', name: 'Mesa 2', status: 'libre', session: null, branchId: 'jade'  },
+    { id: 'm3', name: 'Mesa 3', status: 'libre', session: null, branchId: 'anexo' }
   ],
-  sessions: [],   // sesiones cerradas (para reportes)
-  cash: {         // movimientos de caja por branch (simple)
-    jade:  { shifts: [], currentShift: null },
-    anexo: { shifts: [], currentShift: null }
-  },
+  sessions: [], // sesiones cerradas para reportes
   version: 1
 });
 
@@ -55,10 +52,10 @@ async function loadState() {
     const raw = await fs.readFile(DATA_PATH, 'utf8');
     state = JSON.parse(raw);
     console.log('[state] data.json cargado.');
-  } catch (e) {
+  } catch {
     state = defaultState();
     await saveState();
-    console.log('[state] data.json creado con valores por defecto.');
+    console.log('[state] data.json creado por defecto.');
   }
 }
 
@@ -66,60 +63,48 @@ async function saveState() {
   try {
     await fs.writeFile(DATA_PATH, JSON.stringify(state, null, 2), 'utf8');
   } catch (e) {
-    console.error('[state] Error al guardar data.json:', e.message);
+    console.error('[state] error guardando:', e.message);
   }
 }
 
-// Cargar al inicio
+// Carga inicial + guardado periódico
 await loadState();
-
-// Guardado periódico (seguro ante caídas)
 setInterval(saveState, 10000);
 
-// ====== Helpers ======
+// ===== Utilidades =====
 const nowTs = () => Date.now();
 const uid = (p='id') => `${p}_${Math.random().toString(36).slice(2, 9)}`;
-
-// Cobro por tiempo redondeado
-function computeCharge({ start, end, ratePerHour = 15, minMinutes = 30, fractionMinutes = 5, pausedMs = 0 }) {
-  const eff = Math.max(0, (end - start) - Math.max(0, pausedMs));
-  const mins = Math.max(0, Math.ceil(eff / 60000));
-  const rounded = Math.max(minMinutes, Math.ceil(mins / fractionMinutes) * fractionMinutes);
-  const amount = (ratePerHour / 60) * rounded;
-  return { minutes: mins, rounded, amount };
+function computeCharge({ start, end, ratePerHour=15, minMinutes=30, fractionMinutes=5, pausedMs=0 }) {
+  const effective = Math.max(0, (end - start) - Math.max(0, pausedMs));
+  const minutes   = Math.max(0, Math.ceil(effective / 60000));
+  const rounded   = Math.max(minMinutes, Math.ceil(minutes / fractionMinutes) * fractionMinutes);
+  const amount    = (ratePerHour / 60) * rounded;
+  return { minutes, rounded, amount };
 }
 
-// ====== Rutas ======
+// =================== API ===================
 
-// Raíz informativa
-app.get('/', (_req, res) => {
-  res.type('text/plain').send('billar-backend OK. Probar /health, /login, /mesas, /reportes');
-});
-
-// Salud
+// Health
 app.get('/health', (_req, res) => {
   res.json({ ok: true, service: 'billar-backend', time: new Date().toISOString() });
 });
 
-// --------- Auth (DEMO) ---------
+// ---- Auth (DEMO) ----
 app.post('/login', (req, res) => {
   const { username, password } = req.body || {};
   const u = (state.users || []).find(x => x.username === username && x.password === password && x.active);
   if (!u) return res.status(401).json({ error: 'Credenciales inválidas' });
-  // En un sistema real, devolveríamos un JWT. Aquí solo demo:
-  res.json({
-    token: 'demo-token',
-    user: { username: u.username, role: u.role, branchId: u.branchId }
-  });
+  // En un sistema real devolveríamos JWT. Aquí devolvemos user y token demo.
+  res.json({ token: 'demo-token', user: { username: u.username, role: u.role, branchId: u.branchId } });
 });
 
-// --------- Usuarios (simple) ---------
+// ---- Usuarios ----
 app.get('/usuarios', (_req, res) => {
   res.json((state.users || []).map(u => ({ ...u, password: undefined })));
 });
 
 app.post('/usuarios', (req, res) => {
-  const { username, password = '123456', role = 'Cajero', branchId = 'jade', active = true } = req.body || {};
+  const { username, password='123456', role='Cajero', branchId='jade', active=true } = req.body || {};
   if (!username) return res.status(400).json({ error: 'username requerido' });
   if (state.users.find(u => u.username === username)) return res.status(409).json({ error: 'Usuario ya existe' });
   const nu = { id: uid('usr'), username, password, role, branchId, active };
@@ -146,7 +131,7 @@ app.patch('/usuarios/:id/password', (req, res) => {
   res.json({ ok: true });
 });
 
-// --------- Mesas ---------
+// ---- Mesas ----
 app.get('/mesas', (req, res) => {
   const { branchId } = req.query || {};
   const list = branchId ? state.mesas.filter(m => m.branchId === branchId) : state.mesas;
@@ -200,35 +185,40 @@ app.patch('/mesas/:id/cerrar', (req, res) => {
   const m = state.mesas.find(x => x.id === req.params.id);
   if (!m || m.status !== 'ocupada' || !m.session) return res.status(409).json({ error: 'Mesa no ocupada' });
 
-  // Demo de tarifa (podés mover a config luego)
-  const config = { ratePerHour: 15, minMinutes: 30, fractionMinutes: 5 };
-  // Si está en pausa, acumulamos
+  // Config demo — luego lo puedes mover a una colección "config"
+  const cfg = { ratePerHour: 15, minMinutes: 30, fractionMinutes: 5 };
+
   if (m.session.isPaused) {
     m.session.isPaused = false;
     m.session.pausedMs += (nowTs() - (m.session.pausedAt || nowTs()));
     m.session.pausedAt = null;
   }
-  const end = nowTs();
-  const tarifa = computeCharge({
-    start: m.session.start, end,
-    ratePerHour: config.ratePerHour, minMinutes: config.minMinutes,
-    fractionMinutes: config.fractionMinutes, pausedMs: m.session.pausedMs
+
+  const end    = nowTs();
+  const tariff = computeCharge({
+    start: m.session.start,
+    end,
+    ratePerHour: cfg.ratePerHour,
+    minMinutes:  cfg.minMinutes,
+    fractionMinutes: cfg.fractionMinutes,
+    pausedMs: m.session.pausedMs
   });
+
   const productosBruto = (m.session.items || []).reduce((a, it) => a + (it.price * it.qty), 0);
   const productosDesc  = (m.session.items || []).reduce((a, it) => a + Math.min(it.disc || 0, it.price * it.qty), 0);
   const productosNeto  = Math.max(0, productosBruto - productosDesc);
-  const subtotal       = tarifa.amount + productosNeto;
+  const subtotal       = tariff.amount + productosNeto;
   const total          = Math.max(0, subtotal - (m.session.discountTotal || 0));
 
   const closed = {
     id: m.session.id,
     branchId: m.branchId,
-    tableId: m.id,
+    tableId:  m.id,
     tableName: m.name,
     start: m.session.start,
     end,
     pausedMs: m.session.pausedMs,
-    tariff: tarifa,
+    tariff,
     items: m.session.items,
     productosBruto,
     productosDesc,
@@ -236,18 +226,19 @@ app.patch('/mesas/:id/cerrar', (req, res) => {
     discountMesa: m.session.discountTotal || 0,
     total,
     customerName: m.session.customerName || '',
-    openedBy: m.session.createdBy || '',
-    closedBy: 'demo'
+    openedBy:    m.session.createdBy   || '',
+    closedBy:    'demo'
   };
 
   state.sessions.push(closed);
   m.status = 'libre';
   m.session = null;
   saveState();
+
   res.json({ ok: true, session: closed });
 });
 
-// --------- Reportes ---------
+// ---- Reportes ----
 app.get('/reportes', (req, res) => {
   const { from, to, branchId } = req.query || {};
   const fromTs = from ? new Date(`${from}T00:00:00`).getTime() : 0;
@@ -257,16 +248,22 @@ app.get('/reportes', (req, res) => {
   if (branchId) list = list.filter(s => s.branchId === branchId);
 
   const totals = {
-    tiempo: list.reduce((a, s) => a + (s.tariff?.rounded || 0), 0),
+    tiempo:    list.reduce((a, s) => a + (s.tariff?.rounded || 0), 0),
     productos: list.reduce((a, s) => a + (s.productosNeto || 0), 0),
-    total: list.reduce((a, s) => a + (s.total || 0), 0),
-    margen: 0 // en este mínimo no calculamos costo
+    total:     list.reduce((a, s) => a + (s.total || 0), 0),
+    margen:    0
   };
 
   res.json({ sessions: list, totals });
 });
 
-// ====== Start ======
+// ============ FRONT (SPA) ============
+// Servir archivos estáticos del build de Vite
+app.use(express.static(DIST));
+// Catch‑all: cualquier ruta no-API devuelve la SPA
+app.get('*', (_req, res) => res.sendFile(path.join(DIST, 'index.html')));
+
+// ============ START ============
 app.listen(PORT, () => {
   console.log(`billar-backend escuchando en puerto ${PORT}`);
 });
