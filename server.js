@@ -1,7 +1,3 @@
-// server.js
-// Backend mínimo para BILLAR JADE (Express + CORS + persistencia simple en data.json)
-// Modo ES Modules (package.json: "type": "module")
-
 import express from 'express';
 import cors from 'cors';
 import fs from 'fs/promises';
