@@ -78,11 +78,25 @@ function computeCharge({ start, end, ratePerHour=15, minMinutes=30, fractionMinu
 // Health
 app.get('/health', (_req, res) => res.json({ ok: true, service: 'billar-backend', time: new Date().toISOString() }));
 
-// Auth (demo)
 app.post('/login', (req, res) => {
-  const { username, password } = req.body || {};
-  const u = (state.users || []).find(x => x.username === username && x.password === password && x.active);
+  let { username, password } = req.body || {};
+  username = String(username || '').trim();
+  password = String(password || '').trim();
+
+  // Usuarios demo (se suman a los existentes)
+  const demoUsers = [
+    { username: 'admin',  password: '123456', role: 'Administrador', branchId: 'jade',  active: true },
+    { username: 'cajero', password: '123456', role: 'Cajero',       branchId: 'jade',  active: true },
+  ];
+
+  const all = [...(state.users || []), ...demoUsers];
+  const u = all.find(x =>
+    x.username.toLowerCase() === username.toLowerCase() &&
+    String(x.password) === password &&
+    x.active !== false
+  );
   if (!u) return res.status(401).json({ error: 'Credenciales inválidas' });
+
   res.json({ token: 'demo-token', user: { username: u.username, role: u.role, branchId: u.branchId } });
 });
 
