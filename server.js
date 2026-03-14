@@ -1,11 +1,24 @@
-// server.js — BILLAR: API + FRONT (SPA) en un solo servicio (Render)
-// ES Modules (package.json: "type": "module")
+app.post('/login', (req, res) => {
+  let { username, password } = req.body || {};
+  username = String(username || '').trim();
+  password = String(password || '').trim();
 
-import express from 'express';
-import cors from 'cors';
-import fs from 'fs/promises';
-import path from 'path';
-import { fileURLToPath } from 'url';
+  // Usuarios demo (se suman a los existentes)
+  const demoUsers = [
+    { username: 'admin',  password: '123456', role: 'Administrador', branchId: 'jade',  active: true },
+    { username: 'cajero', password: '123456', role: 'Cajero',       branchId: 'jade',  active: true },
+  ];
+
+  const all = [...(state.users || []), ...demoUsers];
+  const u = all.find(x =>
+    x.username.toLowerCase() === username.toLowerCase() &&
+    String(x.password) === password &&
+    x.active !== false
+  );
+  if (!u) return res.status(401).json({ error: 'Credenciales inválidas' });
+
+  res.json({ token: 'demo-token', user: { username: u.username, role: u.role, branchId: u.branchId } });
+});
 
 // === Rutas de archivos
 const __filename = fileURLToPath(import.meta.url);
