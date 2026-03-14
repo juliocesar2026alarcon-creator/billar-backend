@@ -1,6 +1,4 @@
-// ==== BLOQUE 1/3 — IMPORTS, HELPERS, API, CONFIG & PERSISTENCIA ====
-// (reemplaza desde la línea 1 de tu App.jsx)
-
+// ==== BLOQUE B1/3 — IMPORTS, HELPERS, API, CONFIG & PERSISTENCIA ====
 import React, { useEffect, useMemo, useState } from "react";
 import { deepClone } from "./safeClone.js";
 
@@ -41,7 +39,7 @@ function toCSV(rows, delimiter = ";") {
   return rows.map((r) => r.map(escape).join(delimiter)).join("\n");
 }
 
-/** Regla de redondeo global 0.49/0.50 */
+/** Regla de redondeo 0.49/0.50 */
 function roundBs(amount) {
   const n = Number(amount || 0);
   const dec = n - Math.floor(n);
@@ -54,7 +52,7 @@ function roundBs(amount) {
 /* =============================
    API client (mismo origen)
    ============================= */
-const API = import.meta.env.VITE_API_URL || ""; // vacío = mismo dominio
+const API = import.meta.env.VITE_API_URL || "";
 
 async function http(path, { method = "GET", body, signal } = {}) {
   const res = await fetch(`${API}${path}`, {
@@ -78,10 +76,15 @@ const api = {
   // Mesas
   getMesas: (branchId, { signal } = {}) =>
     http(`/mesas${branchId ? `?branchId=${encodeURIComponent(branchId)}` : ""}`, { signal }),
-  abrirMesa: (id) => http(`/mesas/${id}/abrir`, { method: "PATCH" }),
-  pausarMesa: (id) => http(`/mesas/${id}/pausar`, { method: "PATCH" }),
+  abrirMesa:   (id) => http(`/mesas/${id}/abrir`,   { method: "PATCH" }),
+  pausarMesa:  (id) => http(`/mesas/${id}/pausar`,  { method: "PATCH" }),
   retomarMesa: (id) => http(`/mesas/${id}/retomar`, { method: "PATCH" }),
-  cerrarMesa: (id) => http(`/mesas/${id}/cerrar`, { method: "PATCH" }),
+  cerrarMesa:  (id) => http(`/mesas/${id}/cerrar`,  { method: "PATCH" }),
+
+  // NUEVOS
+  createMesa:  ({ branchId, name }) => http(`/mesas`, { method: "POST", body: { branchId, name } }),
+  deleteMesa:  (id) => http(`/mesas/${id}`, { method: "DELETE" }),
+  updateMesa:  (id, body) => http(`/mesas/${id}`, { method: "PATCH", body }),
 
   // Reportes
   getReportes: ({ from, to, branchId }) => {
@@ -116,7 +119,6 @@ const defaultInventory = [
   { id: uid("item"), name: "Snack", stock: 30, price: 8.0, cost: 4.0, unit: "u" },
 ];
 
-/** Config global (visual/local) */
 const defaultConfig = {
   ratePerHour: 15,
   fractionMinutes: 5,
@@ -128,10 +130,10 @@ const defaultConfig = {
   ticketLogo: "",
   agentPrintEnabled: false,
   supervisorPin: "4321",
-  requirePinForDiscounts: true, // Cajero pide PIN; Admin nunca
+  requirePinForDiscounts: true,
 };
 
-// Persistencia local (para módulos locales: inventario, caja, usuarios)
+// Persistencia local (Inventario, Caja, Usuarios — NO mesas)
 const LS_KEY = "billiards_app_state_v4";
 const AUTH_KEY = "billiards_app_auth_v4";
 const USERS_KEY = "billiards_app_users_v4";
@@ -141,40 +143,22 @@ const DEFAULT_USERS = [
   { id: uid("usr"), username: "cajero", password: "123456", role: "Cajero",       branchId: "jade", active: true },
 ];
 
-function loadState() {
-  try { const raw = localStorage.getItem(LS_KEY); return raw ? JSON.parse(raw) : null; }
-  catch { return null; }
-}
-function saveState(state) {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(state)); }
-  catch {}
-}
-function loadAuth() {
-  try { const raw = localStorage.getItem(AUTH_KEY); return raw ? JSON.parse(raw) : null; }
-  catch { return null; }
-}
-function saveAuth(auth) {
-  try { localStorage.setItem(AUTH_KEY, JSON.stringify(auth)); }
-  catch {}
-}
-function loadUsers() {
-  try { const raw = localStorage.getItem(USERS_KEY); return raw ? JSON.parse(raw) : null; }
-  catch { return null; }
-}
-function saveUsers(users) {
-  try { localStorage.setItem(USERS_KEY, JSON.stringify(users)); }
-  catch {}
-}
-// ==== FIN BLOQUE 1/3 ====
-// ==== BLOQUE 2/3 — APP: AUTH, MESAS BACKEND, CAJA/INVENTARIO LOCALES, LAYOUT & MODALES ====
+function loadState() { try { const raw = localStorage.getItem(LS_KEY);  return raw ? JSON.parse(raw) : null; } catch { return null; } }
+function saveState(state){ try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch {} }
+function loadAuth() { try { const raw = localStorage.getItem(AUTH_KEY); return raw ? JSON.parse(raw) : null; } catch { return null; } }
+function saveAuth(auth){ try { localStorage.setItem(AUTH_KEY, JSON.stringify(auth)); } catch {} }
+function loadUsers(){ try { const raw = localStorage.getItem(USERS_KEY); return raw ? JSON.parse(raw) : null; } catch { return null; } }
+function saveUsers(users){ try { localStorage.setItem(USERS_KEY, JSON.stringify(users)); } catch {} }
+// ==== FIN BLOQUE B1/3 ====
+// ==== BLOQUE B2/3 — APP: AUTH, MESAS BACKEND, CAJA/INVENTARIO, LAYOUT & MODALES ====
 export default function App() {
-  // --- Auth & usuarios (local fallback para módulo Usuarios)
+  // Auth & Usuarios locales
   const [authUser, setAuthUser] = useState(() => loadAuth());
   const [users, setUsers] = useState(() => loadUsers() || DEFAULT_USERS);
   useEffect(() => saveUsers(users), [users]);
   useEffect(() => saveAuth(authUser), [authUser]);
 
-  // --- Estado global local (Inventario, Caja, Reportes locales)
+  // Estado local (Inventario, Caja, Reportes)
   const [branches, setBranches] = useState(defaultBranches);
   const [selectedBranchId, setSelectedBranchId] = useState(() =>
     authUser?.role === "Cajero" ? (authUser.branchId || defaultBranches[0].id) : defaultBranches[0].id
@@ -184,7 +168,7 @@ export default function App() {
     const init = {};
     for (const b of defaultBranches) {
       init[b.id] = {
-        tables: makeDefaultTables(defaultConfig.tablesPerBranch), // (no se usa para backend, se deja para UI legacy)
+        tables: makeDefaultTables(defaultConfig.tablesPerBranch),
         inventory: [...defaultInventory],
         kardex: [],
         cash: { currentShift: null, shifts: [], closures: [] },
@@ -194,7 +178,7 @@ export default function App() {
     return init;
   });
 
-  // Carga/guarda estado local (no afecta a Mesas backend)
+  // Carga/guardado local (no afecta a Mesas)
   useEffect(() => {
     const stored = loadState();
     if (stored && typeof stored === "object") {
@@ -203,9 +187,7 @@ export default function App() {
         if (stored.selectedBranchId) setSelectedBranchId(stored.selectedBranchId);
         if (stored.config) setConfig(stored.config);
         if (stored.byBranch) setByBranch(stored.byBranch);
-      } catch (_) {
-        console.warn("Estado previo inválido, se ignora.");
-      }
+      } catch {}
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -225,14 +207,11 @@ export default function App() {
       sessions: [],
     };
 
-  // Reloj global
+  // Reloj
   const [tick, setTick] = useState(nowTs());
-  useEffect(() => {
-    const t = setInterval(() => setTick(nowTs()), 1000);
-    return () => clearInterval(t);
-  }, []);
+  useEffect(() => { const t = setInterval(() => setTick(nowTs()), 1000); return () => clearInterval(t); }, []);
 
-  // Mutación segura (para módulos locales)
+  // Mutación segura (módulos locales)
   const updateByBranch = (updater) => {
     setByBranch((prev) => {
       const base = deepClone(prev || {});
@@ -243,16 +222,7 @@ export default function App() {
 
   // ===== Inventario / Kardex (local)
   const pushKardex = (st, { itemId, name, type, qty, unitCost, ref }) => {
-    st.kardex.push({
-      id: uid("kx"),
-      itemId,
-      name,
-      at: nowTs(),
-      type,
-      qty,
-      unitCost: Number(unitCost || 0),
-      ref,
-    });
+    st.kardex.push({ id: uid("kx"), itemId, name, at: nowTs(), type, qty, unitCost: Number(unitCost || 0), ref });
   };
   const ingresoStock = (item, qty, unitCost) => {
     updateByBranch((copy) => {
@@ -279,11 +249,11 @@ export default function App() {
     });
   };
 
-  // ===== MESAS (SINCRONIZADAS CON BACKEND) =====
+  // ===== MESAS (BACKEND) =====
   const [mesas, setMesas] = useState([]);
-  const [syncing, setSyncing] = useState(false);      // spinner solo en acciones
-  const [lastSyncAt, setLastSyncAt] = useState(null); // hora último sync
-  const [ctrl, setCtrl] = useState(null);             // AbortController
+  const [syncing, setSyncing] = useState(false);
+  const [lastSyncAt, setLastSyncAt] = useState(null);
+  const [ctrl, setCtrl] = useState(null);
 
   async function fetchMesas({ showBusy = false } = {}) {
     try {
@@ -303,84 +273,72 @@ export default function App() {
 
   useEffect(() => {
     if (!authUser) return;
-    fetchMesas({ showBusy: false });                    // primera carga
-    const t = setInterval(() => fetchMesas({ showBusy: false }), 3000); // refresco suave cada 3s
+    fetchMesas({ showBusy: false });
+    const t = setInterval(() => fetchMesas({ showBusy: false }), 3000);
     return () => clearInterval(t);
   }, [authUser, selectedBranchId]);
 
   async function handleAbrirMesa(id) {
-    try {
-      setSyncing(true);
-      await api.abrirMesa(id);
-      await fetchMesas({ showBusy: false });
-    } catch (e) {
-      alert("No se pudo abrir: " + e.message);
-    } finally {
-      setSyncing(false);
-    }
+    try { setSyncing(true); await api.abrirMesa(id); await fetchMesas({ showBusy: false }); }
+    catch (e) { alert("No se pudo abrir: " + e.message); }
+    finally { setSyncing(false); }
   }
   async function handlePausarRetomar(mesa) {
     try {
-      if (mesa?.status !== "ocupada" || !mesa?.session) {
-        alert("La mesa no está ocupada.");
-        return;
-      }
+      if (mesa?.status !== "ocupada" || !mesa?.session) { alert("La mesa no está ocupada."); return; }
       setSyncing(true);
-      if (!mesa.session.isPaused) await api.pausarMesa(mesa.id);
-      else await api.retomarMesa(mesa.id);
+      if (!mesa.session.isPaused) await api.pausarMesa(mesa.id); else await api.retomarMesa(mesa.id);
       await fetchMesas({ showBusy: false });
-    } catch (e) {
-      alert("No se pudo pausar/retomar: " + e.message);
-    } finally {
-      setSyncing(false);
-    }
+    } catch (e) { alert("No se pudo pausar/retomar: " + e.message); }
+    finally { setSyncing(false); }
   }
   async function handleCerrarMesa(id, { imprimir }) {
     try {
       setSyncing(true);
       const r = await api.cerrarMesa(id);
       await fetchMesas({ showBusy: false });
-      if (imprimir && r?.session) {
-        // Puedes cambiar por openTicket(r.session, nombreSucursal) si usas impresión real
-        window.print();
-      }
-    } catch (e) {
-      alert("No se pudo cerrar: " + e.message);
-    } finally {
-      setSyncing(false);
-    }
+      if (imprimir && r?.session) window.print();
+    } catch (e) { alert("No se pudo cerrar: " + e.message); }
+    finally { setSyncing(false); }
   }
 
-  // ===== Descuentos (UI legacy) — quedan con aviso hasta tener endpoints =====
-  const needPin = () => config.requirePinForDiscounts && authUser?.role !== "Administrador";
-  const applyItemDiscount = () => alert("Descuento de Ítem: pendiente de endpoint en backend.");
-  const applyMesaDiscount = () => {
-    if (needPin()) {
-      const pin = prompt("PIN Administrador:") || "";
-      if (pin !== config.supervisorPin) { alert("PIN incorrecto"); return; }
+  // NUEVOS: +Mesa / −Mesa / Rename / Cliente / Desc. Mesa
+  async function handleCreateMesa() {
+    try { setSyncing(true); await api.createMesa({ branchId: selectedBranchId }); await fetchMesas({ showBusy: false }); }
+    catch (e) { alert("No se pudo crear la mesa: " + e.message); }
+    finally { setSyncing(false); }
+  }
+  async function handleDeleteLastFreeMesa() {
+    try {
+      const last = [...(mesas || [])].filter(m => m.branchId === selectedBranchId && m.status === "libre").reverse()[0];
+      if (!last) { alert("No hay mesas libres para eliminar."); return; }
+      setSyncing(true);
+      await api.deleteMesa(last.id);
+      await fetchMesas({ showBusy: false });
+    } catch (e) { alert("No se pudo eliminar la mesa: " + e.message); }
+    finally { setSyncing(false); }
+  }
+  async function handleRenameMesa(id, name) {
+    try { await api.updateMesa(id, { name }); } catch (e) { console.error("Renombrar:", e.message); }
+  }
+  async function handleCustomerChange(id, name) {
+    try { await api.updateMesa(id, { customerName: name }); } catch (e) { console.error("Cliente:", e.message); }
+  }
+  async function handleMesaDiscount(id) {
+    if (config.requirePinForDiscounts && authUser?.role !== "Administrador") {
+      const pin = prompt("PIN Administrador:") || ""; if (pin !== config.supervisorPin) { alert("PIN incorrecto"); return; }
     }
-    alert("Descuento de Mesa: pendiente de endpoint en backend.");
-  };
-  const moveSessionToTable = () => alert("Mover consumo: pendiente de endpoint en backend.");
-  const addItemToTable    = () => alert("Agregar producto: pendiente de endpoint en backend.");
-  const removeItemFromTable = () => alert("Quitar producto: pendiente de endpoint en backend.");
-  const removeLastFreeTable = () => alert("− Mesa: requiere endpoint DELETE /mesas/:id (pendiente).");
-
-  // ===== Cerrar mesa LOCAL (legacy) — NO usar: queda para imprimir históricos si hiciera falta
-  const stopTable = () => alert("Usa el botón Cerrar & Imprimir (con backend).");
+    const val = Number(prompt("Descuento TOTAL de la mesa (Bs):", "0") || 0);
+    try { await api.updateMesa(id, { discountTotal: val }); await fetchMesas({ showBusy: false }); }
+    catch (e) { alert("No se pudo aplicar descuento: " + e.message); }
+  }
 
   // ===== Caja (local)
   const abrirCaja = (initialCash) => {
     updateByBranch((copy) => {
       const st = copy[selectedBranchId] || (copy[selectedBranchId] = deepClone(branchState));
       if (st.cash.currentShift) return copy;
-      st.cash.currentShift = {
-        id: uid("turno"),
-        openedAt: nowTs(),
-        openedBy: authUser?.username || "",
-        initialCash: Number(initialCash) || 0,
-        movements: [],
-      };
+      st.cash.currentShift = { id: uid("turno"), openedAt: nowTs(), openedBy: authUser?.username || "", initialCash: Number(initialCash) || 0, movements: [] };
       return copy;
     });
   };
@@ -388,14 +346,7 @@ export default function App() {
     updateByBranch((copy) => {
       const st = copy[selectedBranchId] || (copy[selectedBranchId] = deepClone(branchState));
       if (!st.cash.currentShift) return copy;
-      st.cash.currentShift.movements.push({
-        id: uid("mov"),
-        type,
-        at: nowTs(),
-        concept,
-        amount: Number(amount) || 0,
-        by: authUser?.username || "",
-      });
+      st.cash.currentShift.movements.push({ id: uid("mov"), type, at: nowTs(), concept, amount: Number(amount) || 0, by: authUser?.username || "" });
       return copy;
     });
   };
@@ -411,34 +362,23 @@ export default function App() {
       const totalCaja = cur.initialCash + ingresos - egresos;
       const ventas = cur.movements.filter((m) => m.type === "venta");
       const cierre = {
-        id: uid("cierre"),
-        branchId: selectedBranchId,
-        branchName: selectedBranch?.name || "",
-        openedAt: cur.openedAt,
-        closedAt: cur.closedAt,
-        openedBy: cur.openedBy,
-        closedBy: cur.closedBy,
-        initialCash: cur.initialCash,
-        ingresos, egresos, totalCaja,
-        ventasCount: ventas.length,
-        ventasTotal: ventas.reduce((a, m) => a + m.amount, 0),
+        id: uid("cierre"), branchId: selectedBranchId, branchName: selectedBranch?.name || "",
+        openedAt: cur.openedAt, closedAt: cur.closedAt, openedBy: cur.openedBy, closedBy: cur.closedBy,
+        initialCash: cur.initialCash, ingresos, egresos, totalCaja,
+        ventasCount: ventas.length, ventasTotal: ventas.reduce((a, m) => a + m.amount, 0),
       };
-      st.cash.shifts.push(cur);
-      st.cash.closures.push(cierre);
-      st.cash.currentShift = null;
+      st.cash.shifts.push(cur); st.cash.closures.push(cierre); st.cash.currentShift = null;
       return copy;
     });
   };
   const cajaResumen = useMemo(() => {
-    const st = branchState;
-    const turno = st?.cash?.currentShift;
-    if (!turno) return null;
+    const st = branchState, turno = st?.cash?.currentShift; if (!turno) return null;
     const ingresos = (turno.movements || []).filter((m) => m.type === "venta" || m.type === "ingreso").reduce((a, m) => a + m.amount, 0);
     const egresos  = (turno.movements || []).filter((m) => m.type === "egreso").reduce((a, m) => a + m.amount, 0);
     return { ingresos, egresos, totalCaja: (turno.initialCash || 0) + ingresos - egresos };
   }, [branchState]);
 
-  // ===== Impresión / Ticket (opcional)
+  // Impresión (opcional)
   const [ticketData, setTicketData] = useState(null);
   function openTicket(data, branchName) {
     const withBranch = { ...data, branchName };
@@ -457,26 +397,18 @@ export default function App() {
         body: JSON.stringify({ type: "billar_ticket_v1", payload }),
       });
       if (!res.ok) throw new Error("Agente no respondió");
-    } catch (e) {
-      throw e;
-    }
+    } catch (e) { throw e; }
   }
 
-  // ===== Reportes (desde backend)
+  // Reportes (desde backend)
   const [showReports, setShowReports] = useState(false);
   const [reportFilter, setReportFilter] = useState(() => ({
-    from: fmtISODate(Date.now()),
-    to: fmtISODate(Date.now()),
-    cashier: "",
-    table: "",
-    product: "",
+    from: fmtISODate(Date.now()), to: fmtISODate(Date.now()), cashier: "", table: "", product: "",
   }));
   const [reportData, setReportData] = useState({ sessions: [], totals: { tiempo: 0, productos: 0, total: 0, margen: 0 }, prodAgg: [], byCashier: [], byTable: [] });
   async function loadReport() {
     try {
       const data = await api.getReportes({ from: reportFilter.from, to: reportFilter.to, branchId: selectedBranchId });
-      // El backend ya trae sessions y totals; agregados locales si necesitas
-      // Para mantener compatibilidad con tu ReportsCard, llenamos campos esperados:
       const sessions = (data.sessions || []).map((s) => ({
         ...s,
         productosBruto: s.productosBruto ?? 0,
@@ -485,47 +417,25 @@ export default function App() {
         discountMesa:   s.discountMesa   ?? 0,
         tariff: s.tariff || { rounded: 0, amount: 0 },
       }));
-      // Agregados simples:
+      // agregados
       const prodMap = new Map();
-      for (const s of sessions) {
-        for (const it of (s.items || [])) {
-          const key = it.name;
-          const agg = prodMap.get(key) || { name: key, qty: 0, venta: 0, costo: 0, margen: 0 };
-          agg.qty    += it.qty;
-          agg.venta  += (it.price * it.qty) - (it.disc || 0);
-          agg.costo  += (it.cost  * it.qty);
-          agg.margen += ((it.price * it.qty) - (it.disc || 0) - (it.cost * it.qty));
-          prodMap.set(key, agg);
-        }
+      for (const s of sessions) for (const it of (s.items || [])) {
+        const key = it.name; const agg = prodMap.get(key) || { name: key, qty: 0, venta: 0, costo: 0, margen: 0 };
+        agg.qty += it.qty; agg.venta += (it.price * it.qty) - (it.disc || 0); agg.costo += (it.cost * it.qty); agg.margen += ((it.price * it.qty) - (it.disc || 0) - (it.cost * it.qty));
+        prodMap.set(key, agg);
       }
       const prodAgg = Array.from(prodMap.values());
       const cashMap = new Map();
-      for (const s of sessions) {
-        const k = s.closedBy || "—";
-        const a = cashMap.get(k) || { cajero: k, ventas: 0 };
-        a.ventas += s.total || 0;
-        cashMap.set(k, a);
-      }
+      for (const s of sessions) { const k = s.closedBy || "—"; const a = cashMap.get(k) || { cajero: k, ventas: 0 }; a.ventas += s.total || 0; cashMap.set(k, a); }
       const byCashier = Array.from(cashMap.values());
       const tbMap = new Map();
-      for (const s of sessions) {
-        const k = s.tableName || "—";
-        const a = tbMap.get(k) || { mesa: k, ventas: 0 };
-        a.ventas += s.total || 0;
-        tbMap.set(k, a);
-      }
+      for (const s of sessions) { const k = s.tableName || "—"; const a = tbMap.get(k) || { mesa: k, ventas: 0 }; a.ventas += s.total || 0; tbMap.set(k, a); }
       const byTable = Array.from(tbMap.values());
-      setReportData({
-        sessions,
-        totals: data.totals || { tiempo: 0, productos: 0, total: 0, margen: 0 },
-        prodAgg, byCashier, byTable,
-      });
-    } catch (e) {
-      alert("Error reportes: " + e.message);
-    }
+      setReportData({ sessions, totals: data.totals || { tiempo: 0, productos: 0, total: 0, margen: 0 }, prodAgg, byCashier, byTable });
+    } catch (e) { alert("Error reportes: " + e.message); }
   }
 
-  // ===== Usuarios (local UI)
+  // Usuarios locales
   const createUser = () => {
     const username = prompt("Usuario:"); if (!username) return;
     const password = prompt("Contraseña inicial:") || "123456";
@@ -533,15 +443,12 @@ export default function App() {
     const branchId = prompt("Sucursal (id):", selectedBranchId) || selectedBranchId;
     setUsers((prev) => [...(prev || []), { id: uid("usr"), username, password, role, branchId, active: true }]);
   };
-  const changePassword = (u) => {
-    const np = prompt(`Nueva contraseña para ${u.username}:`, ""); if (!np) return;
+  const changePassword = (u) => { const np = prompt(`Nueva contraseña para ${u.username}:`, ""); if (!np) return;
     setUsers((prev) => (prev || []).map((x) => (x.id === u.id ? { ...x, password: np } : x)));
   };
-  const toggleUser = (u) => {
-    setUsers((prev) => (prev || []).map((x) => (x.id === u.id ? { ...x, active: !x.active } : x)));
-  };
+  const toggleUser = (u) => { setUsers((prev) => (prev || []).map((x) => (x.id === u.id ? { ...x, active: !x.active } : x))); };
 
-  // Eliminar ticket (solo Admin) local (para histórico local)
+  // Eliminar ticket local
   function deleteSessionPermanent(sessionId) {
     if (authUser?.role !== "Administrador") { alert("Solo Administrador."); return; }
     if (!confirm("¿Eliminar este ticket de forma permanente?")) return;
@@ -549,8 +456,7 @@ export default function App() {
       const st = (copy[selectedBranchId] ||= deepClone(branchState));
       st.sessions = (st.sessions || []).filter((s) => s.id !== sessionId);
       if (st.cash?.currentShift) {
-        st.cash.currentShift.movements =
-          (st.cash.currentShift.movements || []).filter((m) => m?.data?.sessionId !== sessionId);
+        st.cash.currentShift.movements = (st.cash.currentShift.movements || []).filter((m) => m?.data?.sessionId !== sessionId);
       }
       for (const sh of (st.cash?.shifts || [])) {
         sh.movements = (sh.movements || []).filter((m) => m?.data?.sessionId !== sessionId);
@@ -559,13 +465,12 @@ export default function App() {
     });
   }
 
-  // ===== Modales & Layout =====
+  // Modales & Layout
   const [showInventory, setShowInventory] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
   const [showUsers, setShowUsers] = useState(false);
   const isCajero = authUser?.role === "Cajero";
 
-  // Gate de Login — ahora usa backend; si falla, puedes volver a fallback local si quieres
   if (!authUser) {
     return (
       <LoginScreen
@@ -575,7 +480,7 @@ export default function App() {
             setAuthUser({ username: r.user.username, role: r.user.role, branchId: r.user.branchId });
             setSelectedBranchId(r.user.role === "Cajero" ? r.user.branchId : selectedBranchId);
           } catch (e) {
-            // Fallback local por si el backend no responde:
+            // fallback local
             const found = (users || []).find((x) => x.username === username && x.password === password && x.active);
             if (found) {
               setAuthUser({ username: found.username, role: found.role, branchId: found.branchId });
@@ -600,7 +505,6 @@ export default function App() {
         backgroundPosition: "center center",
       }}
     >
-      {/* Overlay oscuro ~30% para legibilidad */}
       <div className="min-h-screen" style={{ background: "rgba(0,0,0,0.30)" }}>
         {/* Top bar */}
         <header className="sticky top-0 z-30 bg-black/30 backdrop-blur border-b border-white/10">
@@ -617,11 +521,11 @@ export default function App() {
                 onChange={(e) => setSelectedBranchId(e.target.value)}
               >
                 {branches.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
+                  <option key={b.id} value={b.id}>{b.name}</option>
                 ))}
               </select>
+
+              {/* Indicador de sync */}
               <div className="flex items-center gap-2 text-xs text-neutral-200 ml-2">
                 {syncing && (
                   <span className="inline-flex items-center gap-1">
@@ -641,13 +545,8 @@ export default function App() {
             </div>
             <Clock tick={tick} />
             <div className="flex items-center gap-2 ml-4">
-              <span className="text-xs text-neutral-300">
-                {authUser.username} ({authUser.role})
-              </span>
-              <button
-                className="border border-white/30 bg-black/30 px-2 py-1 rounded-lg text-xs hover:bg-black/40"
-                onClick={() => setAuthUser(null)}
-              >
+              <span className="text-xs text-neutral-300">{authUser.username} ({authUser.role})</span>
+              <button className="border border-white/30 bg-black/30 px-2 py-1 rounded-lg text-xs hover:bg-black/40" onClick={() => setAuthUser(null)}>
                 Salir
               </button>
             </div>
@@ -662,13 +561,13 @@ export default function App() {
               <h2 className="text-xl font-semibold drop-shadow">Mesas</h2>
               <div className="flex gap-2">
                 <button
-                  onClick={() => alert("Para + Mesa crea endpoint POST /mesas y lo conectamos.")}
+                  onClick={handleCreateMesa}
                   className="px-3 py-1.5 rounded-xl bg-white/20 border border-white/30 shadow-sm text-sm hover:bg-white/25"
                 >
                   + Mesa
                 </button>
                 <button
-                  onClick={removeLastFreeTable}
+                  onClick={handleDeleteLastFreeMesa}
                   className="px-3 py-1.5 rounded-xl bg-white/20 border border-white/30 shadow-sm text-sm hover:bg-white/25"
                 >
                   − Mesa
@@ -682,20 +581,18 @@ export default function App() {
                 <MesaCard
                   key={t.id}
                   table={t}
-                  // Acciones con backend
+                  config={config}
                   onStart={() => handleAbrirMesa(t.id)}
                   onPauseResume={() => handlePausarRetomar(t)}
                   onStop={(imprimir) => handleCerrarMesa(t.id, { imprimir })}
-                  // Props legacy (UI visible, por ahora muestran aviso)
-                  config={config}
-                  onRename={() => alert("Renombrar mesa: requiere endpoint PATCH /mesas/:id (pendiente).")}
+                  onRename={(name) => handleRenameMesa(t.id, name)}
                   inventory={branchState.inventory}
-                  onAddItem={() => addItemToTable()}
-                  onRemoveItem={() => removeItemFromTable()}
-                  onCustomerChange={() => alert("Cliente: requiere endpoint PATCH /mesas/:id (pendiente).")}
-                  onMove={() => moveSessionToTable()}
-                  onItemDiscount={() => applyItemDiscount()}
-                  onMesaDiscount={() => applyMesaDiscount()}
+                  onAddItem={() => alert("Agregar producto: endpoint pendiente")}
+                  onRemoveItem={() => alert("Quitar producto: endpoint pendiente")}
+                  onCustomerChange={(name) => handleCustomerChange(t.id, name)}
+                  onMove={() => alert("Mover consumo: endpoint pendiente")}
+                  onItemDiscount={() => alert("Desc. ítem: endpoint pendiente")}
+                  onMesaDiscount={() => handleMesaDiscount(t.id)}
                 />
               ))}
             </div>
@@ -747,38 +644,26 @@ export default function App() {
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <label className="flex flex-col">
                   <span>Tarifa (Bs/h)</span>
-                  <input
-                    type="number"
-                    className="border border-neutral-300 bg-white rounded-lg px-2 py-1 text-neutral-900"
-                    value={config.ratePerHour}
-                    onChange={(e) => setConfig((c) => ({ ...c, ratePerHour: Number(e.target.value) }))}
-                  />
+                  <input type="number" className="border border-neutral-300 bg-white rounded-lg px-2 py-1 text-neutral-900"
+                         value={config.ratePerHour}
+                         onChange={(e) => setConfig((c) => ({ ...c, ratePerHour: Number(e.target.value) }))}/>
                 </label>
                 <label className="flex flex-col">
                   <span>Fracción (min)</span>
-                  <input
-                    type="number"
-                    className="border border-neutral-300 bg-white rounded-lg px-2 py-1 text-neutral-900"
-                    value={config.fractionMinutes}
-                    onChange={(e) => setConfig((c) => ({ ...c, fractionMinutes: Number(e.target.value) }))}
-                  />
+                  <input type="number" className="border border-neutral-300 bg-white rounded-lg px-2 py-1 text-neutral-900"
+                         value={config.fractionMinutes}
+                         onChange={(e) => setConfig((c) => ({ ...c, fractionMinutes: Number(e.target.value) }))}/>
                 </label>
                 <label className="flex flex-col">
                   <span>Mínimo (min)</span>
-                  <input
-                    type="number"
-                    className="border border-neutral-300 bg-white rounded-lg px-2 py-1 text-neutral-900"
-                    value={config.minMinutes}
-                    onChange={(e) => setConfig((c) => ({ ...c, minMinutes: Number(e.target.value) }))}
-                  />
+                  <input type="number" className="border border-neutral-300 bg-white rounded-lg px-2 py-1 text-neutral-900"
+                         value={config.minMinutes}
+                         onChange={(e) => setConfig((c) => ({ ...c, minMinutes: Number(e.target.value) }))}/>
                 </label>
                 <label className="flex items-center justify-between">
                   <span>Redondeo 0.49/0.50</span>
-                  <input
-                    type="checkbox"
-                    checked={config.roundingEnabled}
-                    onChange={(e) => setConfig((c) => ({ ...c, roundingEnabled: e.target.checked }))}
-                  />
+                  <input type="checkbox" checked={config.roundingEnabled}
+                         onChange={(e) => setConfig((c) => ({ ...c, roundingEnabled: e.target.checked }))}/>
                 </label>
               </div>
             </div>
@@ -792,18 +677,12 @@ export default function App() {
                 <div className="space-y-3">
                   <div className="flex gap-2">
                     <input
-                      type="number"
-                      placeholder="Saldo inicial"
+                      type="number" placeholder="Saldo inicial"
                       className="border border-white/30 bg-black/30 rounded-lg px-2 py-1 text-sm"
                       onKeyDown={(e) => { if (e.key === "Enter") abrirCaja(e.currentTarget.value); }}
                     />
-                    <button
-                      className="px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-sm hover:bg-emerald-700"
-                      onClick={() => {
-                        const v = prompt("Saldo inicial de caja:", "0");
-                        if (v != null) abrirCaja(Number(v));
-                      }}
-                    >
+                    <button className="px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-sm hover:bg-emerald-700"
+                            onClick={() => { const v = prompt("Saldo inicial de caja:", "0"); if (v != null) abrirCaja(Number(v)); }}>
                       Abrir
                     </button>
                   </div>
@@ -816,22 +695,12 @@ export default function App() {
                   <div className="flex justify-between"><span>Egresos:</span><span>{bs(cajaResumen?.egresos || 0)}</span></div>
                   <div className="flex justify-between font-semibold"><span>Total caja:</span><span>{bs(cajaResumen?.totalCaja || 0)}</span></div>
                   <div className="flex gap-2 mt-2">
-                    <button
-                      className="px-3 py-1.5 rounded-xl bg-white/15 border border-white/25 shadow-sm text-sm"
-                      onClick={() => {
-                        const c = prompt("Concepto del ingreso:"); if (!c) return;
-                        const a = prompt("Monto (Bs):", "0"); if (a != null) movimientoCaja("ingreso", c, Number(a));
-                      }}
-                    >
+                    <button className="px-3 py-1.5 rounded-xl bg-white/15 border border-white/25 shadow-sm text-sm"
+                            onClick={() => { const c = prompt("Concepto del ingreso:"); if (!c) return; const a = prompt("Monto (Bs):", "0"); if (a != null) movimientoCaja("ingreso", c, Number(a)); }}>
                       + Ingreso
                     </button>
-                    <button
-                      className="px-3 py-1.5 rounded-xl bg-white/15 border border-white/25 shadow-sm text-sm"
-                      onClick={() => {
-                        const c = prompt("Concepto del egreso:"); if (!c) return;
-                        const a = prompt("Monto (Bs):", "0"); if (a != null) movimientoCaja("egreso", c, Number(a));
-                      }}
-                    >
+                    <button className="px-3 py-1.5 rounded-xl bg-white/15 border border-white/25 shadow-sm text-sm"
+                            onClick={() => { const c = prompt("Concepto del egreso:"); if (!c) return; const a = prompt("Monto (Bs):", "0"); if (a != null) movimientoCaja("egreso", c, Number(a)); }}>
                       - Egreso
                     </button>
                     <button className="ml-auto px-3 py-1.5 rounded-xl bg-rose-600 text-white text-sm" onClick={cerrarCaja}>
@@ -844,7 +713,7 @@ export default function App() {
           </section>
         </main>
 
-        {/* MODALES ===================================================== */}
+        {/* MODALES */}
         {showInventory && (
           <Modal title="Inventario" onClose={() => setShowInventory(false)}>
             <InventoryCard
@@ -869,16 +738,11 @@ export default function App() {
               onDeleteSession={(sid) => deleteSessionPermanent(sid)}
             />
             <div className="mt-3 flex gap-2">
-              <button
-                className="px-3 py-1.5 rounded-xl bg-white text-neutral-900 border border-neutral-300 shadow-sm hover:bg-neutral-50"
-                onClick={loadReport}
-              >
+              <button className="px-3 py-1.5 rounded-xl bg-white text-neutral-900 border border-neutral-300 shadow-sm hover:bg-neutral-50" onClick={loadReport}>
                 Actualizar
               </button>
-              <button
-                className="px-3 py-1.5 rounded-xl bg-white text-neutral-900 border border-neutral-300 shadow-sm hover:bg-neutral-50"
-                onClick={() => exportReportCSV(branchState, reportData, reportFilter, selectedBranch?.name)}
-              >
+              <button className="px-3 py-1.5 rounded-xl bg-white text-neutral-900 border border-neutral-300 shadow-sm hover:bg-neutral-50"
+                      onClick={() => exportReportCSV(branchState, reportData, reportFilter, selectedBranch?.name)}>
                 Exportar CSV
               </button>
             </div>
@@ -890,45 +754,27 @@ export default function App() {
             <div className="grid grid-cols-1 gap-2 text-sm">
               <label className="flex items-center justify-between gap-2">
                 <span>Impresión directa (agente ESC/POS)</span>
-                <input
-                  type="checkbox"
-                  checked={config.agentPrintEnabled}
-                  onChange={(e) => setConfig((c) => ({ ...c, agentPrintEnabled: e.target.checked }))}
-                />
+                <input type="checkbox" checked={config.agentPrintEnabled} onChange={(e) => setConfig((c) => ({ ...c, agentPrintEnabled: e.target.checked }))}/>
               </label>
               <label className="flex items-center justify-between gap-2">
                 <span>Exigir PIN para descuentos</span>
-                <input
-                  type="checkbox"
-                  checked={config.requirePinForDiscounts}
-                  onChange={(e) => setConfig((c) => ({ ...c, requirePinForDiscounts: e.target.checked }))}
-                />
+                <input type="checkbox" checked={config.requirePinForDiscounts} onChange={(e) => setConfig((c) => ({ ...c, requirePinForDiscounts: e.target.checked }))}/>
               </label>
               <label className="flex items-center justify-between gap-2">
                 <span>PIN de administrador</span>
-                <input
-                  type="password"
-                  className="border border-neutral-300 bg-white rounded-lg px-2 py-1 text-neutral-900"
-                  value={config.supervisorPin}
-                  onChange={(e) => setConfig((c) => ({ ...c, supervisorPin: e.target.value }))}
-                />
+                <input type="password" className="border border-neutral-300 bg-white rounded-lg px-2 py-1 text-neutral-900"
+                       value={config.supervisorPin} onChange={(e) => setConfig((c) => ({ ...c, supervisorPin: e.target.value }))}/>
               </label>
               <label className="flex flex-col">
                 <span>Encabezado de ticket</span>
-                <input
-                  className="border border-neutral-300 bg-white rounded-lg px-2 py-1 text-neutral-900"
-                  value={config.ticketHeader}
-                  onChange={(e) => setConfig((c) => ({ ...c, ticketHeader: e.target.value }))}
-                  placeholder="Ej.: BILLAR JADE — Sucursal Centro"
-                />
+                <input className="border border-neutral-300 bg-white rounded-lg px-2 py-1 text-neutral-900"
+                       value={config.ticketHeader} onChange={(e) => setConfig((c) => ({ ...c, ticketHeader: e.target.value }))} placeholder="Ej.: BILLAR JADE — Sucursal Centro"/>
               </label>
               <label className="flex flex-col">
                 <span>Logo del ticket (PNG/JPG)</span>
                 <input type="file" accept="image/*" onChange={(e) => handleLogoUpload(e, setConfig)} />
               </label>
-              {config.ticketLogo && (
-                <img src={config.ticketLogo} alt="Logo" className="h-16 object-contain border border-white/25 rounded p-1" />
-              )}
+              {config.ticketLogo && (<img src={config.ticketLogo} alt="Logo" className="h-16 object-contain border border-white/25 rounded p-1" />)}
             </div>
           </Modal>
         )}
@@ -940,38 +786,20 @@ export default function App() {
             ) : (
               <div className="space-y-2">
                 <div className="flex justify-end">
-                  <button
-                    className="px-2 py-1 text-xs rounded-lg bg-sky-50/70 text-sky-700 border border-sky-200"
-                    onClick={createUser}
-                  >
+                  <button className="px-2 py-1 text-xs rounded-lg bg-sky-50/70 text-sky-700 border border-sky-200" onClick={createUser}>
                     + Usuario
                   </button>
                 </div>
                 <div className="space-y-1 max-h-[70vh] overflow-auto pr-1 text-sm">
                   {(users || []).map((u) => (
-                    <div
-                      key={u.id}
-                      className="grid grid-cols-12 gap-2 items-center border border-white/20 rounded-xl p-2 bg-white/10"
-                    >
+                    <div key={u.id} className="grid grid-cols-12 gap-2 items-center border border-white/20 rounded-xl p-2 bg-white/10">
                       <div className="col-span-3">{u.username}</div>
                       <div className="col-span-2">{u.role}</div>
-                      <div className="col-span-3">
-                        Sucursal: {branches.find((b) => b.id === u.branchId)?.name || u.branchId}
-                      </div>
+                      <div className="col-span-3">Sucursal: {branches.find((b) => b.id === u.branchId)?.name || u.branchId}</div>
                       <div className="col-span-2">{u.active ? "Activo" : "Inactivo"}</div>
                       <div className="col-span-2 flex gap-1 justify-end">
-                        <button
-                          className="px-2 py-1 text-xs rounded-lg bg-white/20 border border-white/30"
-                          onClick={() => changePassword(u)}
-                        >
-                          Cambiar clave
-                        </button>
-                        <button
-                          className="px-2 py-1 text-xs rounded-lg bg-white/20 border border-white/30"
-                          onClick={() => toggleUser(u)}
-                        >
-                          {u.active ? "Desactivar" : "Activar"}
-                        </button>
+                        <button className="px-2 py-1 text-xs rounded-lg bg-white/20 border border-white/30" onClick={() => changePassword(u)}>Cambiar clave</button>
+                        <button className="px-2 py-1 text-xs rounded-lg bg-white/20 border border-white/30" onClick={() => toggleUser(u)}>{u.active ? "Desactivar" : "Activar"}</button>
                       </div>
                     </div>
                   ))}
@@ -980,9 +808,8 @@ export default function App() {
             )}
           </Modal>
         )}
-        {/* ============================================================ */}
 
-        {/* Impresión 80mm (área oculta) */}
+        {/* Impresión 80mm (oculta) */}
         <div aria-hidden className="print:block hidden">
           <div id="ticket" className="ticket w-[80mm] p-3 text-sm font-mono bg-white text-black">
             {ticketData && <Ticket80mm data={ticketData} config={config} />}
@@ -1001,8 +828,8 @@ export default function App() {
     </div>
   );
 }
-// ==== FIN BLOQUE 2/3 ====
-// ==== BLOQUE 3/3 — CLOCK, MESACARD, MODAL, INVENTARIO, REPORTES, TICKET, HELPERS ====
+// ==== FIN BLOQUE B2/3 ====
+// ==== BLOQUE B3/3 — CLOCK, MESACARD, MODAL, INVENTARIO, REPORTES, TICKET, HELPERS ====
 
 // Reloj de cabecera
 function Clock({ tick }) {
@@ -1014,7 +841,7 @@ function Clock({ tick }) {
   );
 }
 
-// Tarjeta de mesa (UI compatible con tu diseño anterior)
+// Tarjeta de mesa (rename al perder foco / Enter)
 function MesaCard({
   table, config,
   onStart, onStop,
@@ -1028,9 +855,16 @@ function MesaCard({
   const pausedAt = table?.session?.pausedAt;
 
   const [t, setT] = useState(0);
-  const [showPicker, setShowPicker] = useState(false);
-
   useEffect(() => { const i = setInterval(() => setT(Date.now()), 1000); return () => clearInterval(i); }, []);
+
+  const [nameInput, setNameInput] = useState(table?.name || "");
+  useEffect(() => { setNameInput(table?.name || ""); }, [table?.name]);
+
+  function commitName(e) {
+    const v = String(nameInput || "").trim();
+    if (v && v !== table.name) onRename?.(v);
+    if (e?.key === "Enter") e.currentTarget.blur();
+  }
 
   const tarifa = useMemo(() => {
     if (!table.session) return null;
@@ -1042,14 +876,18 @@ function MesaCard({
     });
   }, [table.session, config, t, isPaused, pausedAt, pausedMs, start]);
 
+  const [showPicker, setShowPicker] = useState(false);
+
   return (
     <div className={`rounded-2xl border border-white/25 shadow-sm p-3 backdrop-blur
                      ${table.status === "ocupada" ? "bg-emerald-500/15" : "bg-white/12"}`}>
       <div className="flex items-center justify-between mb-2">
         <input
           className="font-semibold bg-transparent focus:outline-none rounded px-1 hover:bg-white/10"
-          value={table.name}
-          onChange={(e) => onRename?.(e.target.value)}
+          value={nameInput}
+          onChange={(e) => setNameInput(e.target.value)}
+          onBlur={commitName}
+          onKeyDown={(e) => { if (e.key === "Enter") commitName(e); }}
         />
         <span className={`text-xs px-2 py-0.5 rounded-full border
                          ${table.status === "ocupada"
@@ -1112,10 +950,7 @@ function MesaCard({
               />
 
               <div className="font-medium mb-1">Productos</div>
-              <button
-                className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-sm mb-2"
-                onClick={() => setShowPicker(true)}
-              >
+              <button className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-sm mb-2" onClick={() => setShowPicker(true)}>
                 + Producto
               </button>
 
@@ -1149,7 +984,7 @@ function MesaCard({
             </button>
           </div>
 
-          {/* Modal agregar consumo (UI vigente, acción pendiente de endpoint) */}
+          {/* Picker productos (UI local — endpoints pendientes) */}
           {showPicker && (
             <Modal title="Agregar consumo" onClose={() => setShowPicker(false)}>
               <ProductPicker inventory={inventory} onPick={(it) => onAddItem?.(it.id)} />
@@ -1166,7 +1001,7 @@ function MesaCard({
   );
 }
 
-// Modal básico
+// Modal
 function Modal({ title = "", onClose, children }) {
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center">
@@ -1182,7 +1017,7 @@ function Modal({ title = "", onClose, children }) {
   );
 }
 
-// Buscador/selector de productos (local UI)
+// ProductPicker (local)
 function ProductPicker({ inventory = [], onPick }) {
   const [q, setQ] = useState("");
   const list = useMemo(() => {
@@ -1194,12 +1029,7 @@ function ProductPicker({ inventory = [], onPick }) {
   return (
     <div>
       <div className="flex gap-2 mb-3">
-        <input
-          className="border rounded-lg px-3 py-2 w-full"
-          placeholder="Buscar producto..."
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-        />
+        <input className="border rounded-lg px-3 py-2 w-full" placeholder="Buscar producto..." value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
 
       <div className="border rounded-xl overflow-hidden">
@@ -1210,24 +1040,16 @@ function ProductPicker({ inventory = [], onPick }) {
           <div className="col-span-2 text-right">&nbsp;</div>
         </div>
         <div className="max-h-[50vh] overflow-auto">
-          {list.length === 0 && (
-            <div className="px-3 py-6 text-center text-sm text-neutral-500">Sin resultados</div>
-          )}
+          {list.length === 0 && (<div className="px-3 py-6 text-center text-sm text-neutral-500">Sin resultados</div>)}
           {list.map((it) => (
             <div key={it.id} className="grid grid-cols-12 items-center px-3 py-2 border-b text-sm">
-              <div className="col-span-7 truncate" title={it.name}>
-                {it.name}
-              </div>
+              <div className="col-span-7 truncate" title={it.name}>{it.name}</div>
               <div className="col-span-2 text-right">Bs {Number(it.price || 0).toFixed(2)}</div>
               <div className="col-span-1 text-right">{it.stock}</div>
               <div className="col-span-2 flex justify-end">
                 <button
                   disabled={it.stock <= 0}
-                  className={`px-2 py-1 rounded-lg border text-sm ${
-                    it.stock <= 0
-                      ? "opacity-60 cursor-not-allowed"
-                      : "bg-emerald-600 text-white border-emerald-600"
-                  }`}
+                  className={`px-2 py-1 rounded-lg border text-sm ${it.stock <= 0 ? "opacity-60 cursor-not-allowed" : "bg-emerald-600 text-white border-emerald-600"}`}
                   onClick={() => onPick && onPick(it)}
                 >
                   Agregar
@@ -1254,14 +1076,12 @@ function InventoryCard({ branchState, setByBranch, selectedBranchId, ingresoStoc
             onClick={() => {
               const name = prompt("Producto:"); if (!name) return;
               const price = Number(prompt("Precio venta (Bs):", "0") || 0);
-              const cost = Number(prompt("Precio real/costo (Bs):", "0") || 0);
+              const cost  = Number(prompt("Precio real/costo (Bs):", "0") || 0);
               const stock = Number(prompt("Stock inicial:", "0") || 0);
               const unit = prompt("Unidad (u, bot, etc):", "u") || "u";
               setByBranch((prev) => {
                 const copy = deepClone(prev || {});
-                (copy[selectedBranchId] ||= deepClone(branchState)).inventory.push({
-                  id: uid("item"), name, price, cost, stock, unit,
-                });
+                (copy[selectedBranchId] ||= deepClone(branchState)).inventory.push({ id: uid("item"), name, price, cost, stock, unit });
                 return copy;
               });
             }}
@@ -1349,51 +1169,38 @@ function InventoryCard({ branchState, setByBranch, selectedBranchId, ingresoStoc
   );
 }
 
-// Reportes (usa reportData ya armado en App)
+// Reportes (usa datos ya preparados)
 function ReportsCard({ branchState, selectedBranch, reportFilter, setReportFilter, reportData, onReprint, onDeleteSession }) {
   const isEmpty = (reportData.sessions || []).length === 0;
-
   return (
     <div className="bg-white text-neutral-900 rounded-2xl shadow-sm border p-4">
       <div className="flex items-center justify-between mb-2">
         <h3 className="font-semibold">Reportes</h3>
       </div>
 
-      {/* Filtros (controlados desde App) */}
       <div className="flex flex-wrap gap-2 items-center text-sm mb-2">
         <label className="flex items-center gap-1">
           Desde
-          <input
-            type="date"
-            className="border border-neutral-300 bg-white rounded-lg px-2 py-1 text-neutral-900"
-            value={reportFilter.from}
-            onChange={(e) => setReportFilter((f) => ({ ...f, from: e.target.value }))}
-          />
+          <input type="date" className="border border-neutral-300 bg-white rounded-lg px-2 py-1 text-neutral-900"
+                 value={reportFilter.from} onChange={(e) => setReportFilter((f) => ({ ...f, from: e.target.value }))}/>
         </label>
         <label className="flex items-center gap-1">
           Hasta
-          <input
-            type="date"
-            className="border border-neutral-300 bg-white rounded-lg px-2 py-1 text-neutral-900"
-            value={reportFilter.to}
-            onChange={(e) => setReportFilter((f) => ({ ...f, to: e.target.value }))}
-          />
+          <input type="date" className="border border-neutral-300 bg-white rounded-lg px-2 py-1 text-neutral-900"
+                 value={reportFilter.to} onChange={(e) => setReportFilter((f) => ({ ...f, to: e.target.value }))}/>
         </label>
       </div>
 
-      {/* Totales */}
       <div className="text-sm space-y-1">
         <div className="flex justify-between"><span>Tiempo facturado:</span><span>{reportData?.totals?.tiempo || 0} min</span></div>
         <div className="flex justify-between"><span>Total productos (neto):</span><span>{bs(reportData?.totals?.productos || 0)}</span></div>
         <div className="flex justify-between font-semibold"><span>Total cobrado:</span><span>{bs(reportData?.totals?.total || 0)}</span></div>
       </div>
 
-      {/* Sesiones */}
       <details className="mt-2" open>
         <summary className="text-sm text-neutral-600 cursor-pointer">Sesiones (detallado)</summary>
         <div className="mt-2 max-h-64 overflow-auto pr-1 space-y-1">
           {isEmpty && <div className="text-xs text-neutral-500">Sin sesiones en el rango.</div>}
-
           {(reportData.sessions || []).map((s) => (
             <div key={s.id} className="text-xs border rounded-lg p-2">
               <div className="grid grid-cols-2 gap-1">
@@ -1406,11 +1213,8 @@ function ReportsCard({ branchState, selectedBranch, reportFilter, setReportFilte
                 <div><b>Prod. neto:</b> {bs(s.productosNeto || 0)}</div>
                 <div className="font-semibold"><b>Total cobrado:</b> {bs(s.total || 0)}</div>
               </div>
-
               <div className="mt-1 flex gap-2 justify-end">
-                <button className="px-2 py-1 text-xs rounded-lg bg-white border" onClick={() => onReprint && onReprint(s)}>
-                  Reimprimir
-                </button>
+                <button className="px-2 py-1 text-xs rounded-lg bg-white border" onClick={() => onReprint && onReprint(s)}>Reimprimir</button>
                 <button className="px-2 py-1 text-xs rounded-lg bg-rose-50 text-rose-700 border border-rose-300" onClick={() => onDeleteSession && onDeleteSession(s.id)}>
                   Eliminar
                 </button>
@@ -1423,7 +1227,7 @@ function ReportsCard({ branchState, selectedBranch, reportFilter, setReportFilte
   );
 }
 
-// Ticket 80mm (opcional)
+// Ticket 80mm
 function Ticket80mm({ data, config }) {
   return (
     <div className="text-xs leading-5">
@@ -1434,19 +1238,15 @@ function Ticket80mm({ data, config }) {
         <div>{new Date(data.end).toLocaleString()}</div>
         <div className="mt-1">{data.tableName}{data.customerName ? ` — ${data.customerName}` : ""}</div>
       </div>
-
       <div className="mt-2 border-t border-dashed pt-2">
         <div className="flex justify-between"><span>Inicio</span><span>{fmtTime(data.start)}</span></div>
         <div className="flex justify-between"><span>Fin</span><span>{fmtTime(data.end)}</span></div>
         <div className="flex justify-between"><span>Tiempo (min)</span><span>{data.tariff?.rounded || 0}</span></div>
         <div className="flex justify-between"><span>Tarifa</span><span>{bs(data.tariff?.amount || 0)}</span></div>
       </div>
-
       <div className="mt-2">
         <div className="font-medium">Productos</div>
-        {data.items.length === 0 ? (
-          <div className="text-neutral-700">—</div>
-        ) : (
+        {data.items.length === 0 ? (<div className="text-neutral-700">—</div>) : (
           <div className="space-y-1">
             {data.items.map((it) => (
               <div key={it.itemId} className="flex justify-between">
@@ -1459,44 +1259,29 @@ function Ticket80mm({ data, config }) {
         <div className="flex justify-between mt-1"><span>Desc. mesa</span><span>{bs(data.discountMesa || 0)}</span></div>
         <div className="flex justify-between mt-1"><span>Subtotal prod.</span><span>{bs(data.productosNeto || 0)}</span></div>
       </div>
-
       <div className="mt-2 border-t border-dashed pt-2 text-sm font-semibold flex justify-between">
-        <span>Total</span>
-        <span>{bs(data.total || 0)}</span>
+        <span>Total</span><span>{bs(data.total || 0)}</span>
       </div>
-
-      {data.roundingApplied && (
-        <div className="text-center text-[10px] text-neutral-600">
-          * Total redondeado por regla 0.49/0.50
-        </div>
-      )}
+      {data.roundingApplied && (<div className="text-center text-[10px] text-neutral-600">* Total redondeado por regla 0.49/0.50</div>)}
       <div className="mt-2 text-center">Gracias por su preferencia</div>
     </div>
   );
 }
 
-// Pantalla de Login (igual a tu diseño, ahora intenta backend primero)
+// Login
 function LoginScreen({ onLogin, onInitAdmin }) {
-  const [u, setU] = useState("");
-  const [p, setP] = useState("");
+  const [u, setU] = useState(""); const [p, setP] = useState("");
   return (
     <div className="min-h-screen grid place-items-center bg-neutral-50">
       <div className="w-full max-w-sm bg-white border rounded-2xl shadow-sm p-6">
         <h1 className="text-xl font-semibold text-center">Ingreso al Sistema</h1>
         <p className="text-xs text-neutral-500 text-center mb-4">Use sus credenciales para continuar</p>
-        <label className="text-sm flex flex-col mb-2">
-          <span>Usuario</span>
+        <label className="text-sm flex flex-col mb-2"><span>Usuario</span>
           <input className="border rounded-lg px-3 py-2" value={u} onChange={(e) => setU(e.target.value)} />
         </label>
-        <label className="text-sm flex flex-col mb-3">
-          <span>Contraseña</span>
-          <input
-            type="password"
-            className="border rounded-lg px-3 py-2"
-            value={p}
-            onChange={(e) => setP(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") onLogin(u, p); }}
-          />
+        <label className="text-sm flex flex-col mb-3"><span>Contraseña</span>
+          <input type="password" className="border rounded-lg px-3 py-2" value={p} onChange={(e) => setP(e.target.value)}
+                 onKeyDown={(e) => { if (e.key === "Enter") onLogin(u, p); }}/>
         </label>
         <button className="w-full px-3 py-2 rounded-xl bg-emerald-600 text-white text-sm hover:bg-emerald-700" onClick={() => onLogin(u, p)}>
           Ingresar
@@ -1515,8 +1300,7 @@ function handleLogoUpload(e, setConfig) {
   const file = e.target.files?.[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = (ev) =>
-    setConfig((c) => ({ ...c, ticketLogo: String(ev.target?.result || "") }));
+  reader.onload = (ev) => setConfig((c) => ({ ...c, ticketLogo: String(ev.target?.result || "") }));
   reader.readAsDataURL(file);
 }
 
@@ -1524,37 +1308,21 @@ function handleLogoUpload(e, setConfig) {
 function exportReportCSV(branchState, reportData, filter, branchName) {
   const SEP = ";";
   const dec = (n) => String(Number(n ?? 0).toFixed(2)).replace(".", ",");
-
   const header = [
-    "Desde", "Hasta", "Sucursal", "Mesa", "Cliente", "Cajero",
-    "Inicio", "Fin", "Tiempo (min)", "Tarifa (Bs)",
-    "Prod. bruto", "Desc. ítems", "Desc. mesa",
-    "Prod. neto", "Costo prod.", "Margen", "Total cobrado",
+    "Desde","Hasta","Sucursal","Mesa","Cliente","Cajero",
+    "Inicio","Fin","Tiempo (min)","Tarifa (Bs)",
+    "Prod. bruto","Desc. ítems","Desc. mesa",
+    "Prod. neto","Costo prod.","Margen","Total cobrado",
   ];
-
   const rows = (reportData.sessions || []).map((s) => [
-    filter.from,
-    filter.to,
-    branchName || "",
-    s.tableName,
-    s.customerName || "",
-    s.closedBy || "",
-    fmtTime(s.start),
-    fmtTime(s.end),
-    s.tariff?.rounded || 0,
-    dec(s.tariff?.amount || 0),
-    dec(s.productosBruto || 0),
-    dec(s.productosDesc || 0),
-    dec(s.discountMesa || 0),
-    dec(s.productosNeto || 0),
-    dec(s.costoProductos || 0),
-    dec(s.margin || 0),
-    dec(s.total || 0),
+    filter.from, filter.to, branchName || "", s.tableName, s.customerName || "", s.closedBy || "",
+    fmtTime(s.start), fmtTime(s.end),
+    s.tariff?.rounded || 0, dec(s.tariff?.amount || 0),
+    dec(s.productosBruto || 0), dec(s.productosDesc || 0), dec(s.discountMesa || 0),
+    dec(s.productosNeto || 0), dec(s.costoProductos || 0), dec(s.margin || 0), dec(s.total || 0),
   ]);
-
   const csvCore = toCSV([header, ...rows], SEP);
   const content = "\uFEFF" + `sep=${SEP}\n` + csvCore;
-
   const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -1567,29 +1335,14 @@ function exportReportCSV(branchState, reportData, filter, branchName) {
 function exportClosureCSV(c) {
   const SEP = ";";
   const dec = (n) => String(Number(n ?? 0).toFixed(2)).replace(".", ",");
-
-  const header = [
-    "Sucursal", "Apertura", "Cierre", "Abrió", "Cerró",
-    "Inicial", "Ingresos", "Egresos", "Total caja", "Ventas (cant)", "Ventas (Bs)",
-  ];
-
+  const header = ["Sucursal","Apertura","Cierre","Abrió","Cerró","Inicial","Ingresos","Egresos","Total caja","Ventas (cant)","Ventas (Bs)"];
   const row = [
-    c.branchName || "",
-    new Date(c.openedAt).toLocaleString(),
-    new Date(c.closedAt).toLocaleString(),
-    c.openedBy || "",
-    c.closedBy || "",
-    dec(c.initialCash),
-    dec(c.ingresos),
-    dec(c.egresos),
-    dec(c.totalCaja),
-    c.ventasCount || 0,
-    dec(c.ventasTotal || 0),
+    c.branchName || "", new Date(c.openedAt).toLocaleString(), new Date(c.closedAt).toLocaleString(),
+    c.openedBy || "", c.closedBy || "", dec(c.initialCash), dec(c.ingresos), dec(c.egresos), dec(c.totalCaja),
+    c.ventasCount || 0, dec(c.ventasTotal || 0),
   ];
-
   const csvCore = toCSV([header, row], SEP);
   const content = "\uFEFF" + `sep=${SEP}\n` + csvCore;
-
   const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -1598,4 +1351,4 @@ function exportClosureCSV(c) {
   a.click();
   URL.revokeObjectURL(url);
 }
-// ==== FIN BLOQUE 3/3 ====
+// ==== FIN BLOQUE B3/3 ====
