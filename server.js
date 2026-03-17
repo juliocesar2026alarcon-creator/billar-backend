@@ -42,7 +42,37 @@ function computeCharge({ start, end, ratePerHour=15, minMinutes=30, fractionMinu
 app.get('/health', (_req, res) => {
   res.json({ ok: true, service: 'billar-backend', time: new Date().toISOString() });
 });
+// Debug Supabase (diagnóstico)
+app.get('/debug-supabase', async (_req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('mesas')
+      .select('*')
+      .limit(1);
 
+    if (error) {
+      return res.status(500).json({
+        ok: false,
+        where: 'supabase',
+        error: error.message,
+        details: error
+      });
+    }
+
+    res.json({
+      ok: true,
+      message: 'Supabase responde correctamente',
+      data
+    });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      where: 'node-fetch',
+      error: err.message,
+      stack: err.stack
+    });
+  }
+});
 // Login (lee de tabla "usuarios" y permite admin/cajero demo)
 app.post('/login', async (req, res) => {
   let { username, password } = req.body || {};
