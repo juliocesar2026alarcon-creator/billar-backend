@@ -252,9 +252,6 @@ app.get('/reportes', async (req, res) => {
   res.json({ sessions: list || [], totals });
 });
 
-// ===== Servir FRONT (SPA) =====
-app.use(express.static(DIST));
-app.get('*', (_req, res) => res.sendFile(path.join(DIST, 'index.html')));
 
 // Start
 app.listen(PORT, () => console.log(`billar-backend escuchando en puerto ${PORT}`));
