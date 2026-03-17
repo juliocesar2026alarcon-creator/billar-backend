@@ -19,9 +19,9 @@ app.use(express.json());
 
 // --- Supabase
 const SUPABASE_URL = process.env.SUPABASE_URL;       // <-- pega en Render
-const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;  // <-- pega en Render (anon public key)
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
 if (!SUPABASE_URL || !SUPABASE_KEY) {
-  console.error('Faltan SUPABASE_URL o SUPABASE_ANON_KEY en variables de entorno.');
+  console.error('Faltan SUPABASE_URL o SUPABASE_SERVICE_KEY en variables de entorno.');
 }
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
