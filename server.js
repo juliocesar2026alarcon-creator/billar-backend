@@ -3,7 +3,6 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { createClient } from '@supabase/supabase-js';
 
 // --- Paths para servir el front compilado
 const __filename = fileURLToPath(import.meta.url);
@@ -20,10 +19,11 @@ app.use(express.json());
 // --- Supabase
 const SUPABASE_URL = process.env.SUPABASE_URL;       // <-- pega en Render
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
+// --- Supabase REST (SIN SDK)
+const SUPABASE_REST = `${SUPABASE_URL}/rest/v1`;
 if (!SUPABASE_URL || !SUPABASE_KEY) {
   console.error('Faltan SUPABASE_URL o SUPABASE_SERVICE_KEY en variables de entorno.');
 }
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ====== Helpers ======
 const nowTs = () => Date.now();
@@ -43,36 +43,23 @@ app.get('/health', (_req, res) => {
   res.json({ ok: true, service: 'billar-backend', time: new Date().toISOString() });
 });
 // Debug Supabase (diagnóstico)
+// Debug Supabase (REST, sin SDK)
 app.get('/debug-supabase', async (_req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('mesas')
-      .select('*')
-      .limit(1);
-
-    if (error) {
-      return res.status(500).json({
-        ok: false,
-        where: 'supabase',
-        error: error.message,
-        details: error
-      });
-    }
-
-    res.json({
-      ok: true,
-      message: 'Supabase responde correctamente',
-      data
+    const r = await fetch(`${SUPABASE_REST}/mesas?select=*&limit=1`, {
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`,
+      },
     });
-  } catch (err) {
-    res.status(500).json({
-      ok: false,
-      where: 'node-fetch',
-      error: err.message,
-      stack: err.stack
-    });
+
+    const data = await r.json();
+    res.json({ ok: true, data });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
   }
 });
+
 // Login (lee de tabla "usuarios" y permite admin/cajero demo)
 app.post('/login', async (req, res) => {
   let { username, password } = req.body || {};
